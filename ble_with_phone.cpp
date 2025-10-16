@@ -30,9 +30,6 @@ void setup()
   while ( !Serial ) yield();
 #endif
 
-  Serial.println("Bluefruit52 BLEUART Example");
-  Serial.println("---------------------------\n");
-
   // Setup the BLE LED to be enabled on CONNECT
   // Note: This is actually the default behavior, but provided
   // here in case you want to control this LED manually via PIN 19
@@ -66,9 +63,6 @@ void setup()
 
   // Set up and start advertising
   startAdv();
-
-  Serial.println("Please use Adafruit's Bluefruit LE app to connect in UART mode");
-  Serial.println("Once connected, enter character(s) that you wish to send");
 }
 
 void startAdv(void)
