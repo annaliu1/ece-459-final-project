@@ -25,10 +25,17 @@ extern float heartRate;
 // init adapter: no-op if the sensor is already initialized elsewhere in your sketch
 bool spo2_init_adapter(void *ctx) {
     (void)ctx;
-    // If your SPO2 setup needs to be called here (e.g., particle.begin(), maxSensor.begin()),
-    // move or call that initialization here and return false on failure.
-    // Example (uncomment and adapt):
-    // if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) { Serial.println("MAX30105 not found"); return false; }
+
+    Wire.begin();
+
+    if (!particleSensor2.begin(Wire, I2C_SPEED_STANDARD)) {
+        Serial.println("MAX30105 not found");
+        return false;
+    }
+
+    // Optional: set up default configuration
+    particleSensor2.setup();  // Configure sensor with default parameters
+    Serial.println("MAX30105 initialized successfully");
     return true;
 }
 
