@@ -14,6 +14,10 @@
 #include <Arduino.h>
 #include "sensor_manager.h" // expects this to be available in include/ or project include path
 #include <Adafruit_TinyUSB.h>
+#include <Wire.h>
+#include "MAX30105.h"
+
+MAX30105 particleSensor2;
 
 // If your existing SPO2 sketch defines these, we reference them here. If not, define them in your SPO2 code.
 extern float last_acdc_ir;
