@@ -10,6 +10,10 @@ extern bool spo2_init_adapter(void *ctx);
 extern bool spo2_read_adapter(void *ctx, sensor_data_t *out);
 extern void spo2_print_adapter(void *ctx, const sensor_data_t *d);
 
+extern bool imu_init_adapter(void *ctx);
+extern bool imu_read_adapter(void *ctx, sensor_data_t *out);
+extern void imu_print_adapter(void *ctx, const sensor_data_t *d);
+
 void setup() {
   Serial.begin(115200);
   unsigned long t0 = millis();
@@ -54,6 +58,18 @@ void setup() {
         true   // start enabled
     );
     Serial.printf("registered sensor spo2_idx=%d\r\n", spo2_idx);
+
+    // Register IMU sensor (uses imu_adapter/imu_module)
+    int imu_idx = sensor_register(
+        "imu",
+        imu_init_adapter,
+        imu_read_adapter,
+        imu_print_adapter,
+        NULL,
+        1, // frequency in Hz
+        true   // start enabled
+    );
+    Serial.printf("registered sensor imu_idx=%d\r\n", imu_idx);
 
     // Create a periodic print task (every 1 second) for quick feedback
     create_sensor_printer_task(1, 4096, 1000);
