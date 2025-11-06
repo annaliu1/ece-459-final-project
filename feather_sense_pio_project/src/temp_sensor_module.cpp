@@ -31,17 +31,6 @@ uint16_t readTemp(void) {
   uint8_t msb = Wire.read();
   uint8_t lsb = Wire.read();
 
-  // Many common sensors (e.g. TMP102) use 12-bit left-justified data:
-  // combined = (msb << 8) | lsb
-  // signed_value = combined >> 4  (12-bit signed)
-  // temp_c = signed_value * 0.0625
-  uint16_t combined = ((uint16_t)msb << 8) | (uint16_t)lsb;
-  int16_t signed12 = (int16_t)(combined >> 4);
-  // Sign-extend 12-bit value if negative:
-  if (signed12 & 0x0800) signed12 |= 0xF000;
-  float temp_c = (float)signed12 * 0.0625f;
-
-  // Return the sensor module's expected raw form: temp_c * 256 (so adapter's /256.0 works)
-  uint16_t ret = (uint16_t)roundf(temp_c * 256.0f);
-  return ret;
+  uint16_t raw = ((uint16_t)msb << 8) | lsb;
+  return raw;
 }

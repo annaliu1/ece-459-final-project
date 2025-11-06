@@ -9,11 +9,11 @@
 #include <Wire.h>
 
 // Globals produced by spo2_module.cpp - the adapter reads these.
-extern float last_acdc_ir;
-extern float last_acdc_red;
-extern float last_rawSpO2;
-extern float ESpO2;
-extern float heartRate;
+extern volatile float last_acdc_ir;
+extern volatile float last_acdc_red;
+extern volatile float last_rawSpO2;
+extern volatile float ESpO2;
+extern volatile float heartRate;
 
 // Forward declaration: spo2_module provides this to create its FreeRTOS task.
 extern void create_spo2_task(UBaseType_t priority, uint16_t stack_words);
@@ -59,21 +59,33 @@ bool spo2_read_adapter(void *ctx, sensor_data_t *out) {
   // If we never saw the device on the bus, return no-data
   if (!spo2_i2c_found) return false;
 
-  // Don't publish until module has written a window (avoid showing zeros)
-  // last_rawSpO2 starts at 0.0; wait until it's nonzero (or negative sentinel)
-  if (last_rawSpO2 == 0.0f) {
-    return false;
-  }
+  // Snapshot the volatile globals under a critical section to avoid torn reads.
+  float ir_acdc_local = 0.0f;
+  float red_acdc_local = 0.0f;
+  float rawSpO2_local = 0.0f;
+  float esp_local = 0.0f;
+  float hr_local = 0.0f;
+
+  taskENTER_CRITICAL();
+  ir_acdc_local  = last_acdc_ir;
+  red_acdc_local = last_acdc_red;
+  rawSpO2_local  = last_rawSpO2;
+  esp_local      = ESpO2;
+  hr_local       = heartRate;
+  taskEXIT_CRITICAL();
+
+  // suppress until first real window to avoid reporting all-zeros
+  if (rawSpO2_local == 0.0f && esp_local == 0.0f) return false;
 
   // Pack five floats (IR_acdc, RED_acdc, rawSpO2, EstimatedSpO2, heartRate) as IEEE-754 32-bit big-endian.
   size_t p = 0;
   union { float f; uint8_t b[4]; } u;
 
-  u.f = last_acdc_ir;  for (int i = 3; i >= 0; --i) { if (p < SENSOR_DATA_BYTES) out->bytes[p++] = u.b[i]; }
-  u.f = last_acdc_red; for (int i = 3; i >= 0; --i) { if (p < SENSOR_DATA_BYTES) out->bytes[p++] = u.b[i]; }
-  u.f = last_rawSpO2;  for (int i = 3; i >= 0; --i) { if (p < SENSOR_DATA_BYTES) out->bytes[p++] = u.b[i]; }
-  u.f = ESpO2;         for (int i = 3; i >= 0; --i) { if (p < SENSOR_DATA_BYTES) out->bytes[p++] = u.b[i]; }
-  u.f = heartRate;     for (int i = 3; i >= 0; --i) { if (p < SENSOR_DATA_BYTES) out->bytes[p++] = u.b[i]; }
+  u.f = ir_acdc_local;  for (int i = 3; i >= 0; --i) { if (p < SENSOR_DATA_BYTES) out->bytes[p++] = u.b[i]; }
+  u.f = red_acdc_local; for (int i = 3; i >= 0; --i) { if (p < SENSOR_DATA_BYTES) out->bytes[p++] = u.b[i]; }
+  u.f = rawSpO2_local;  for (int i = 3; i >= 0; --i) { if (p < SENSOR_DATA_BYTES) out->bytes[p++] = u.b[i]; }
+  u.f = esp_local;      for (int i = 3; i >= 0; --i) { if (p < SENSOR_DATA_BYTES) out->bytes[p++] = u.b[i]; }
+  u.f = hr_local;       for (int i = 3; i >= 0; --i) { if (p < SENSOR_DATA_BYTES) out->bytes[p++] = u.b[i]; }
 
   out->len = p;
   return true;
@@ -95,6 +107,7 @@ void spo2_print_adapter(void *ctx, const sensor_data_t *d) {
   float rawSpO2 = getf(8);
   float esp = getf(12);
   float hr = getf(16);
+  // explicit cast for HR when printing integer semantics
   Serial.printf("  SPO2: ESpO2=%.2f HR=%.1f rawSpO2=%.2f IRacdc=%.2f REDacdc=%.2f\r\n",
                 esp, hr, rawSpO2, ir, red);
 }
