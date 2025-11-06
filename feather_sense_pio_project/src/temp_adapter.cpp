@@ -10,57 +10,90 @@ extern uint16_t readTemp(void);
 
 // Global set by adapter when it finds the device (0 = unknown)
 uint8_t temp_i2c_addr = 0;
-#define SCL 3
-#define SDA 2
+#define SCL 25
+#define SDA 26
 
-// Bus recovery: toggle SCL a few times and emit a STOP condition
-// Uses Arduino's SCL and SDA macros so it matches your board pin mapping.
-static void i2c_bus_recover(void) {
-  Serial.println("i2c_bus_recover: attempting bus recovery...");
-  Serial.printf("i2c_bus_recover: SCL pin=%d SDA pin=%d\r\n", SCL, SDA);
+void i2c_unstick() {
+  Serial.println("Attempting I2C unstick: toggling SCL and sending STOP");
 
-  // Make SCL an output; leave SDA as input with pullup so we can read its state
+  // Configure pins as open-drain style: drive low actively, release to pull-up for high
   pinMode(SCL, OUTPUT);
-  pinMode(SDA, INPUT_PULLUP);
+  pinMode(SDA, OUTPUT);
+  digitalWrite(SCL, HIGH); // release (we'll treat HIGH as released if external pullups)
+  digitalWrite(SDA, HIGH);
+  delay(5);
 
-  // If SDA is released (high), nothing is stuck — still clock a few pulses to be safe
-  for (int i = 0; i < 16; ++i) {
-    digitalWrite(SCL, HIGH);
-    delayMicroseconds(300);
-    digitalWrite(SCL, LOW);
-    delayMicroseconds(300);
+  // If SDA is held low, try clocking SCL up to 9 times to make slave release SDA
+  if (digitalRead(SDA) == LOW) {
+    Serial.println("SDA is LOW; pulsing SCL up to 9 times to recover...");
+    // Generate 9 clock pulses
+    for (int i = 0; i < 9; ++i) {
+      // SCL low
+      digitalWrite(SCL, LOW);
+      delayMicroseconds(250);
+      // SCL high (released)
+      pinMode(SCL, INPUT); // release to let pull-up pull it high
+      delayMicroseconds(250);
+      // read current values
+      int sda = digitalRead(SDA);
+      int scl = digitalRead(SCL);
+      Serial.printf("pulse %d: SCL=%d SDA=%d\n", i+1, scl, sda);
+      // re-configure for next pulse
+      pinMode(SCL, OUTPUT);
+      digitalWrite(SCL, HIGH); // release before next low
+      delayMicroseconds(100);
+      if (digitalRead(SDA) == HIGH) {
+        Serial.println("SDA released during pulses.");
+        break;
+      }
+    }
+  } else {
+    Serial.println("SDA is HIGH at start; bus looks released.");
   }
 
-  // Try to generate a STOP: SDA low -> SCL high -> SDA high
-  // Force SDA low briefly then release it and pulse SCL high so slave sees STOP
+  // Try issuing STOP: SDA low, SCL high, then SDA high.
+  Serial.println("Issuing STOP sequence...");
   pinMode(SDA, OUTPUT);
   digitalWrite(SDA, LOW);
-  delayMicroseconds(300);
+  delayMicroseconds(100);
+  // release SCL
+  pinMode(SCL, INPUT);
+  delayMicroseconds(200);
+  // release SDA (STOP)
+  pinMode(SDA, INPUT);
+  delayMicroseconds(200);
 
-  digitalWrite(SCL, HIGH);
-  delayMicroseconds(300);
-  digitalWrite(SDA, HIGH);
-  delayMicroseconds(300);
-
-  // Restore pins to inputs pulled-up
-  pinMode(SDA, INPUT_PULLUP);
-  pinMode(SCL, INPUT_PULLUP);
-
-  // Small delay then re-init Wire
-  delay(10);
-  Wire.begin(); // re-init I2C master
-  Serial.println("i2c_bus_recover: done, Wire.begin() called");
+  Serial.printf("After STOP: SCL=%d SDA=%d\n", digitalRead(SCL), digitalRead(SDA));
+  delay(50);
 }
+
+void i2c_scan() {
+  Serial.println("I2C scan start");
+  Wire.begin(); // ensure Wire is started
+  delay(50);
+  bool found = false;
+  for (byte addr = 1; addr < 127; ++addr) {
+    Wire.beginTransmission(addr);
+    uint8_t err = Wire.endTransmission();
+    if (err == 0) {
+      Serial.print("I2C device found at 0x");
+      if (addr < 16) Serial.print('0');
+      Serial.println(addr, HEX);
+      found = true;
+    } else {
+      // optionally print err code for debugging
+      // Serial.printf("addr 0x%02X err=%u\n", addr, err);
+    }
+    delay(5);
+  }
+  if (!found) Serial.println("No I2C devices found");
+  Serial.println("I2C scan done");
+}
+
 
 // Probe a small set of likely addresses only (non-blocking, with recovery)
 bool probe_common_addrs_and_record(void) {
   const uint8_t probe_addrs[] = { 0x48, 0x76, 0x77 };
-
-  // Try a quick recovery first (safe)
-  i2c_bus_recover();
-
-  // A short wait for bus settle
-  delay(20);
 
   for (size_t i = 0; i < sizeof(probe_addrs); ++i) {
     uint8_t a = probe_addrs[i];
@@ -86,6 +119,10 @@ bool temp_init_adapter(void *ctx) {
   Serial.println("temp_init_adapter: start (with recovery+targeted probes)");
   Wire.begin(); // ensure Wire exists
   delay(10);
+
+  i2c_unstick();
+
+  i2c_scan();
 
   bool found = probe_common_addrs_and_record();
   if (!found) {
