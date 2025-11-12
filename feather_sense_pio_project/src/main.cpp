@@ -17,7 +17,7 @@ extern void imu_print_adapter(void *ctx, const sensor_data_t *d);
 void setup() {
   Serial.begin(115200);
   unsigned long t0 = millis();
-  while (!Serial && (millis() - t0) < 1000) delay(10);
+  while (!Serial && (millis() - t0) < 5000) delay(10);
 
   // Print the boot banner multiple times so a late-opening monitor has several chances to catch at least one line
     for (int i = 0; i < 3; ++i) {
@@ -35,7 +35,7 @@ void setup() {
     }
     Serial.println("sensor_manager_init OK");
 
-    // Register temperature sensor (uses temp_adapter/temp_sensor_module)
+   // Register temperature sensor (uses temp_adapter/temp_sensor_module)
     int temp_idx = sensor_register(
         "temp",
         temp_init_adapter,
@@ -54,7 +54,7 @@ void setup() {
         spo2_read_adapter,
         spo2_print_adapter,
         NULL,
-        1, // frequency in Hz
+        0.2, // frequency in Hz
         true   // start enabled
     );
     Serial.printf("registered sensor spo2_idx=%d\r\n", spo2_idx);
@@ -80,11 +80,11 @@ void setup() {
 void loop() {
     // This loop runs as the Arduino main/idle task under FreeRTOS.
     // Print a low-frequency alive message so we can see the MCU is still responsive.
-    // static unsigned long last = 0;
-    // if (millis() - last >= 5000) {
-    //     last = millis();
-    //     Serial.printf("main loop alive (millis=%lu)\r\n", last);
-    // }
-    // // Yield to the RTOS scheduler
-    // vTaskDelay(pdMS_TO_TICKS(100));
+    static unsigned long last = 0;
+    if (millis() - last >= 5000) {
+        last = millis();
+        Serial.printf("main loop alive (millis=%lu)\r\n", last);
+    }
+    // Yield to the RTOS scheduler
+    vTaskDelay(pdMS_TO_TICKS(100));
 }

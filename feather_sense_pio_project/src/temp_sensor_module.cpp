@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_TinyUSB.h>
+#include <sensor_manager.h>
 
 // temp_i2c_addr is set by the adapter when a device is discovered.
 // Declare it as extern here so this module uses the address found by the adapter.
@@ -20,16 +21,25 @@ void temp_sensor_init(void) {
 uint16_t readTemp(void) {
   uint8_t addr = (temp_i2c_addr != 0) ? temp_i2c_addr : default_temp_addr;
 
+  if (!sensor_bus_lock(pdMS_TO_TICKS(50))) return 0xFFFF;
+
   Wire.beginTransmission(addr);
-  Wire.write(0x00); // register pointer (device-specific; 0x00 is common)
+  Wire.write(0x00);
   uint8_t err = Wire.endTransmission();
-  if (err != 0) return 0xFFFF;
+  if (err != 0) {
+    sensor_bus_unlock();
+    return 0xFFFF;
+  }
 
   Wire.requestFrom(addr, (uint8_t)2);
-  if (Wire.available() < 2) return 0xFFFF;
+  if (Wire.available() < 2) {
+    sensor_bus_unlock();
+    return 0xFFFF;
+  }
 
   uint8_t msb = Wire.read();
   uint8_t lsb = Wire.read();
+  sensor_bus_unlock();
 
   uint16_t raw = ((uint16_t)msb << 8) | lsb;
   return raw;

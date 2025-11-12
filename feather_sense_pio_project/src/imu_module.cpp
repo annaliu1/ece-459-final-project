@@ -1,8 +1,11 @@
 #include "imu.h"
+#include "sensor_manager.h"
+#include <Wire.h>
 
+// BNO08x reset pin / instance
 #define BNO08X_RESET -1
 
-sh2_SensorId_t reportType = SH2_ARVR_STABILIZED_RV; //Slower frequency (at most 250Hz) but more accurate
+sh2_SensorId_t reportType = SH2_ARVR_STABILIZED_RV; // desired report type
 long reportIntervalUs = 5000;
 
 sh2_SensorValue_t sensorValue;
@@ -17,7 +20,6 @@ void setReports(sh2_SensorId_t reportType, long report_interval) {
 }
 
 void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, bool degrees = false) {
-
   float sqr = sq(qr);
   float sqi = sq(qi);
   float sqj = sq(qj);
@@ -38,19 +40,59 @@ void quaternionToEulerRV(sh2_RotationVectorWAcc_t* rotational_vector, euler_t* y
   quaternionToEuler(rotational_vector->real, rotational_vector->i, rotational_vector->j, rotational_vector->k, ypr, degrees);
 }
 
-void imu_sensor_init(void){
-  // Try to initialize!
-  if (!bno08x.begin_I2C()) {
-      Serial.println("Failed to find BNO08x chip");
-      // while (1) { delay(10); } -> Would delay for the entire program if not found
-    }
-    Serial.println("BNO08x Found!");
-  
-  setReports(reportType, reportIntervalUs);
+void imu_sensor_init(void) {
+  // Bring up I2C quickly (no heavy probing here)
+  Wire.begin();
+  Wire.setClock(100000UL);
+
+  // Try to acquire the shared I2C bus for a short time to probe the IMU.
+  if (!sensor_bus_lock(pdMS_TO_TICKS(100))) {
+    Serial.println("imu_sensor_init: failed to lock I2C for init - skipping probe");
+    return;
+  }
+
+  // Do a single quick probe attempt using the library's I2C begin.
+  bool found = false;
+  if (bno08x.begin_I2C()) {
+    found = true;
+  }
+
+  // Release the bus ASAP
+  sensor_bus_unlock();
+
+  if (!found) {
+    Serial.println("imu_sensor_init: Failed to find BNO08x chip (probe attempt). Continuing without IMU.");
+    return;
+  }
+
+  Serial.println("imu_sensor_init: BNO08x Found!");
+
+  // Configure reports — wrap in bus lock because it likely uses I2C internally.
+  if (sensor_bus_lock(pdMS_TO_TICKS(200))) {
+    setReports(reportType, reportIntervalUs);
+    sensor_bus_unlock();
+  } else {
+    Serial.println("imu_sensor_init: could not lock bus to call setReports(); try will occur later in reads.");
+  }
 }
 
+// Protect getSensorEvent with bus lock so it doesn't collide with other I2C users.
+// Returns true and fills ypr_in if new data available; false otherwise.
 bool readIMU(euler_t* ypr_in){
-  if (bno08x.getSensorEvent(&sensorValue)) { //Checks if data is available
+  if (!ypr_in) return false;
+
+  // Acquire bus for the library call
+  if (!sensor_bus_lock(pdMS_TO_TICKS(50))) {
+    // couldn't get bus this cycle
+    return false;
+  }
+
+  bool haveEvent = bno08x.getSensorEvent(&sensorValue);
+
+  // release bus quickly
+  sensor_bus_unlock();
+
+  if (haveEvent) {
     quaternionToEulerRV(&sensorValue.un.arvrStabilizedRV, ypr_in, true);
     return true; //data was detected
   }

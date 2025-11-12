@@ -48,4 +48,19 @@ bool sensor_manager_init(void);
 /* Create a periodic printer task (optional convenience) */
 BaseType_t create_sensor_printer_task(UBaseType_t priority, uint16_t stack_words, TickType_t period_ms);
 
+// sensor_manager.h
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Acquire the I2C/sensor bus mutex (timeout in ms). Returns true if acquired.
+bool sensor_bus_lock(TickType_t timeout_ms);
+
+// Release the I2C/sensor bus mutex.
+void sensor_bus_unlock(void);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* SENSOR_MANAGER_H */

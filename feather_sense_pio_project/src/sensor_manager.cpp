@@ -34,6 +34,16 @@ static inline void bus_unlock(void) {
     if (bus_mutex) xSemaphoreGive(bus_mutex);
 }
 
+// Exported wrappers so other modules can use the same bus mutex
+bool sensor_bus_lock(TickType_t timeout_ms) {
+    // bus_lock is static inline above in this file; call it
+    return bus_lock(timeout_ms);
+}
+
+void sensor_bus_unlock(void) {
+    bus_unlock();
+}
+
 /* Per-sensor task */
 static void sensor_task(void *pvParameters)
 {

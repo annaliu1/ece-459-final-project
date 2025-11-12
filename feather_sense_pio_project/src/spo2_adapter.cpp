@@ -1,12 +1,15 @@
-// src/spo2_adapter.cpp
-//
-// SPO2 adapter: initialize bus, probe for MAX30105, and start the spo2 processing task.
-// The spo2_module.cpp file owns the actual MAX30105 instance and does particleSensor.begin()
-// inside its setup; the adapter just ensures the bus is up and the SPO2 task is started.
+/* spo2_adapter.cpp
+   Adapter: probe I2C for MAX30105, start background SPO2 task, snapshot globals for sensor manager.
+   Debug prints are disabled by default (SPO2_DEBUG=0).
+*/
 
 #include <Arduino.h>
 #include "sensor_manager.h"
 #include <Wire.h>
+
+#ifndef SPO2_DEBUG
+#define SPO2_DEBUG 1
+#endif
 
 // Globals produced by spo2_module.cpp - the adapter reads these.
 extern volatile float last_acdc_ir;
@@ -15,39 +18,91 @@ extern volatile float last_rawSpO2;
 extern volatile float ESpO2;
 extern volatile float heartRate;
 
-// Forward declaration: spo2_module provides this to create its FreeRTOS task.
-extern void create_spo2_task(UBaseType_t priority, uint16_t stack_words);
+// Functions owned by module
+extern void spo2_sensor_init(void);
+extern void create_spo2_task(UBaseType_t prio, uint32_t stack_words);
 
-// Track whether we saw the MAX30105 on the bus (0 = unknown / not found)
-static uint8_t spo2_i2c_found = 0;
-static const uint8_t MAX30105_ADDR = 0x57; // typical address for MAX30105
+uint8_t spo2_i2c_addr = 0;
+#define SCL 25
+#define SDA 26
 
-// Probe a single address with small delay/retry (non-blocking)
-static bool probe_addr_once(uint8_t addr) {
-  Wire.beginTransmission(addr);
-  uint8_t err = Wire.endTransmission();
-  return (err == 0);
+// Probe a small set of likely addresses only (non-blocking, with recovery)
+bool probe_common_addrs_and_record2(void) {
+  const uint8_t probe_addrs[] = { 0x57 };
+
+  for (size_t i = 0; i < sizeof(probe_addrs); ++i) {
+    uint8_t a = probe_addrs[i];
+    if (!sensor_bus_lock(pdMS_TO_TICKS(100))) {
+      #if SPO2_DEBUG
+      Serial.println("spo2_adapter: probe - failed to lock bus");
+      #endif
+      delay(20);
+      continue;
+    }
+
+    Wire.beginTransmission(a);
+    uint8_t err = Wire.endTransmission();
+
+    sensor_bus_unlock();
+    
+    #if SPO2_DEBUG
+    Serial.printf("sp02_adapter: probe 0x%02X result=%u\r\n", a, err);
+    Serial.flush();
+    #endif
+    if (err == 0) {
+      #if SPO2_DEBUG
+      Serial.printf("spo2_adapter: device ACK at 0x%02X\r\n", a);
+      #endif
+      spo2_i2c_addr = a;
+      return true;
+    }
+    delay(20);
+  }
+  return false;
 }
 
 bool spo2_init_adapter(void *ctx) {
   (void)ctx;
-  Serial.println("spo2_init_adapter: start");
+  #if SPO2_DEBUG
+  Serial.println("spo2_init_adapter: start (with recovery+targeted probes)");
+  #endif
 
-  // Ensure Wire is started (idempotent)
-  Wire.begin();
+  // Initialize Wire in a portable way
+  #if defined(ARDUINO_ARCH_ESP32)
+    #if SPO2_DEBUG
+    Serial.printf("spo2_init_adapter: Wire.begin(SDA=%d, SCL=%d)\r\n", SDA, SCL);
+    #endif
+    Wire.begin(SDA, SCL);
+  #else
+    #if SPO2_DEBUG
+    Serial.println("spo2_init_adapter: Wire.begin() default pins");
+    #endif
+    Wire.begin();
+  #endif
+
+  Wire.setClock(100000UL);
   delay(10);
 
-  // probe the usual MAX30105 address
-  Serial.printf("spo2_init_adapter: probing 0x%02X ...\r\n", MAX30105_ADDR);
-  bool found = probe_addr_once(MAX30105_ADDR);
-  spo2_i2c_found = found ? 1 : 0;
-  Serial.printf("spo2_init_adapter: probe result=%u\r\n", (unsigned)found);
+  bool found = probe_common_addrs_and_record2();
+  if (!found) {
+    #if SPO2_DEBUG
+    Serial.println("spo2_adapter: no device found at known addresses (0x57)");
+    #endif
+  } else {
+    #if SPO2_DEBUG
+    Serial.printf("spo2_adapter: using addr 0x%02X\n", spo2_i2c_addr);
+    #endif
+  }
 
-  // Start the spo2 processing task (the module will perform particleSensor.begin() itself)
-  Serial.println("spo2_init_adapter: creating spo2 task...");
-  create_spo2_task(2, 4096);
+  // call minimal module init (this will call particleSensor.begin/setup)
+  spo2_sensor_init();
 
-  Serial.println("spo2_init_adapter: done");
+  // start the continuous SPO2 processing task (background, low priority)
+  create_spo2_task(1, 4096);
+  #if SPO2_DEBUG
+  Serial.println("spo2_init_adapter: create_spo2_task started");
+  Serial.println("spo2_init_adapter: done (return true)");
+  #endif
   return true;
 }
 
@@ -55,9 +110,7 @@ bool spo2_read_adapter(void *ctx, sensor_data_t *out) {
   (void)ctx;
   if (!out) return false;
   memset(out, 0, sizeof(*out));
-
-  // If we never saw the device on the bus, return no-data
-  if (!spo2_i2c_found) return false;
+  if (spo2_i2c_addr == 0) return false; // no known device
 
   // Snapshot the volatile globals under a critical section to avoid torn reads.
   float ir_acdc_local = 0.0f;
@@ -73,9 +126,6 @@ bool spo2_read_adapter(void *ctx, sensor_data_t *out) {
   esp_local      = ESpO2;
   hr_local       = heartRate;
   taskEXIT_CRITICAL();
-
-  // suppress until first real window to avoid reporting all-zeros
-  if (rawSpO2_local == 0.0f && esp_local == 0.0f) return false;
 
   // Pack five floats (IR_acdc, RED_acdc, rawSpO2, EstimatedSpO2, heartRate) as IEEE-754 32-bit big-endian.
   size_t p = 0;
@@ -107,7 +157,6 @@ void spo2_print_adapter(void *ctx, const sensor_data_t *d) {
   float rawSpO2 = getf(8);
   float esp = getf(12);
   float hr = getf(16);
-  // explicit cast for HR when printing integer semantics
   Serial.printf("  SPO2: ESpO2=%.2f HR=%.1f rawSpO2=%.2f IRacdc=%.2f REDacdc=%.2f\r\n",
                 esp, hr, rawSpO2, ir, red);
 }
