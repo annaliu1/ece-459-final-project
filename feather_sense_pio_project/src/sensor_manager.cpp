@@ -197,8 +197,24 @@ static void sensor_printer_task(void *pv) {
         vTaskDelay(g_print_period);
     }
 }
+static TickType_t flash_task_period = pdMS_TO_TICKS(2000); //change period 
+static void spi_flash_write_task(void *pv)
+{
+    (void)pv;
+    for (;;) {
+        //spi_flash_write();
+        vTaskDelay(flash_task_period);
+    }
+}
 BaseType_t create_sensor_printer_task(UBaseType_t priority, uint16_t stack_words, TickType_t period_ms)
 {
     g_print_period = pdMS_TO_TICKS(period_ms);
     return xTaskCreate(sensor_printer_task, "sens-pr", stack_words ? stack_words : 4096, NULL, priority ? priority : 1, NULL);
+}
+
+BaseType_t create_SPI_flash_task(UBaseType_t priority, uint16_t stack_words, TickType_t period_ms)
+{
+    flash_task_period = pdMS_TO_TICKS(period_ms);
+    return xTaskCreate(spi_flash_write_task, "flash-w", stack_words ? stack_words : 4096, NULL, priority ? priority : 1, NULL);
+
 }

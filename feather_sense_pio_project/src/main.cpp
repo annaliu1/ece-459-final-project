@@ -74,6 +74,11 @@ void setup() {
     // Create a periodic print task (every 1 second) for quick feedback
     create_sensor_printer_task(1, 4096, 1000);
 
+    // periodic task to save readings to SPI Flash
+    create_SPI_flash_task();
+
+    // periodic task to send data from SPI Flash to computer via Bluetooth
+
     Serial.println("setup() complete, scheduler running...");
 }
 

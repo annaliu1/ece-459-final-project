@@ -42,10 +42,13 @@ void sensor_set_freq(int idx, float freq_hz);
 void print_all_sensors(void);
 bool sensor_get_last(int idx, sensor_data_t *out);
 
+bool spi_flash_write(uint16_t);
+
 /* Initialization */
 bool sensor_manager_init(void);
 
 /* Create a periodic printer task (optional convenience) */
 BaseType_t create_sensor_printer_task(UBaseType_t priority, uint16_t stack_words, TickType_t period_ms);
+BaseType_t create_SPI_flash_task(UBaseType_t priority, uint16_t stack_words, TickType_t period_ms);
 
 #endif /* SENSOR_MANAGER_H */
