@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <Adafruit_TinyUSB.h>
 
+
 #define SENSOR_NAME_MAX    24
 #define SENSOR_DATA_BYTES  64
 

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <Arduino.h>
 #include <Adafruit_TinyUSB.h>
+#include "ble_manager.h"
 
 /* Config */
 #define MAX_SENSORS        20
@@ -138,7 +139,7 @@ int sensor_register(const char *name,
     if (!start_enabled && s->task_handle) {
         vTaskSuspend(s->task_handle);
     }
-
+    Serial.printf("sensor register done, idx = %d", idx);
     return idx;
 }
 
@@ -166,25 +167,53 @@ void sensor_set_freq(int idx, float freq_hz)
     if (s->enabled && s->task_handle) vTaskResume(s->task_handle);
 }
 
+// 
+
 void print_all_sensors(void)
 {
-    Serial.println("==== SENSORS SNAPSHOT ====");
+    char buf[256];
+    int count;
+
+    count = snprintf(buf, sizeof(buf), "SENSORS SNAPSHOT\r\n");
+    bleuart.write((uint8_t*)buf, count);
+
     for (int i = 0; i < sensor_count; ++i) {
         sensor_t *s = &sensors[i];
-        Serial.printf("[%d] %s : enabled=%d freq=%.2fHz last_len=%u ts=%lu\r\n",
-               i, s->name, s->enabled ? 1 : 0, s->freq_hz, (unsigned)s->last_data.len, (unsigned long)s->last_data.timestamp);
-        if (s->print) s->print(s->ctx, &s->last_data);
-        else {
+
+        count = snprintf(buf, sizeof(buf),
+            "[%d] %s : enabled=%d freq=%.2fHz last_len=%u ts=%lu\r\n",
+            i, s->name ? s->name : "(null)",
+            s->enabled ? 1 : 0,
+            s->freq_hz,
+            (unsigned)s->last_data.len,
+            (unsigned long)s->last_data.timestamp);
+        bleuart.write((uint8_t*)buf, count);
+
+        if (s->print) {
+            // if s->print prints via Serial, that output won't go to BLE
+            // modify those to use bleuart.write() as well if needed
+            s->print(s->ctx, &s->last_data);
+        } else {
             if (s->last_data.len > 0) {
-                Serial.print("  data (hex): ");
+                count = snprintf(buf, sizeof(buf), "  data (hex): ");
+                bleuart.write((uint8_t*)buf, count);
+
                 for (size_t b = 0; b < s->last_data.len && b < SENSOR_DATA_BYTES; ++b) {
-                    Serial.printf("%02X ", s->last_data.bytes[b]);
+                    count = snprintf(buf, sizeof(buf), "%02X ", s->last_data.bytes[b]);
+                    bleuart.write((uint8_t*)buf, count);
+                    delay(1); // small delay to avoid flooding BLE TX buffer
                 }
-                Serial.println();
-            } else Serial.println("  (no data)");
+
+                bleuart.write((uint8_t*)"\r\n", 2);
+            } else {
+                count = snprintf(buf, sizeof(buf), "  (no data)\r\n");
+                bleuart.write((uint8_t*)buf, count);
+            }
         }
     }
-    Serial.println("==========================");
+
+    count = snprintf(buf, sizeof(buf), "===================\r\n");
+    bleuart.write((uint8_t*)buf, count);
 }
 
 bool sensor_get_last(int idx, sensor_data_t *out)
