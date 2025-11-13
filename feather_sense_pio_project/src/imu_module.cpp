@@ -76,26 +76,12 @@ void imu_sensor_init(void) {
   }
 }
 
-// Protect getSensorEvent with bus lock so it doesn't collide with other I2C users.
-// Returns true and fills ypr_in if new data available; false otherwise.
 bool readIMU(euler_t* ypr_in){
-  if (!ypr_in) return false;
-
-  // Acquire bus for the library call
-  if (!sensor_bus_lock(pdMS_TO_TICKS(50))) {
-    // couldn't get bus this cycle
-    return false;
-  }
-
-  bool haveEvent = bno08x.getSensorEvent(&sensorValue);
-
-  // release bus quickly
-  sensor_bus_unlock();
-
-  if (haveEvent) {
+  if (bno08x.getSensorEvent(&sensorValue)) { // Checks if data is available
     quaternionToEulerRV(&sensorValue.un.arvrStabilizedRV, ypr_in, true);
-    return true; //data was detected
+    return true; // data was detected
   }
 
-  return false; //data was not detected
+  return false; // data was not detected
 }
+
