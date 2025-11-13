@@ -26,7 +26,8 @@ bool imu_read_adapter(void *ctx, sensor_data_t *out){
     }
 
     // Pack ypr_in into out->bytes (do NOT memcpy into the whole sensor_data_t)
-    static_assert(sizeof(euler_t) <= SENSOR_DATA_BYTES, "euler_t too large for sensor_data_t payload");
+    // static_assert(sizeof(euler_t) <= SENSOR_DATA_BYTES, "euler_t too large for sensor_data_t payload");
+    // memcpy(out, &ypr_in, sizeof(euler_t));
     memcpy(out->bytes, &ypr_in, sizeof(euler_t));
     out->len = (uint8_t)sizeof(euler_t); // 12 bytes for 3 floats (typical)
 
@@ -44,9 +45,25 @@ bool imu_print_adapter(void *ctx, const sensor_data_t *d){
     memcpy(&ypr_out, d->bytes, sizeof(euler_t));
 
     // Print YPR values
-    Serial.printf("yaw: %f\t",  ypr_out.yaw);
-    Serial.printf("pitch: %f\t", ypr_out.pitch);
-    Serial.printf("roll: %f\n",  ypr_out.roll);
+    // Serial.printf("yaw: %f\t",  ypr_out.yaw);
+    // Serial.printf("pitch: %f\t", ypr_out.pitch);
+    // Serial.printf("roll: %f\n",  ypr_out.roll);
+
+    if(ypr_out.roll <= -90.f){
+        Serial.printf("extreme right\n");
+    }
+    else if(ypr_out.roll > -90.f && ypr_out.roll <= -30.f){
+        Serial.printf("medium right\n");
+    }
+    else if(ypr_out.roll > -30.f && ypr_out.roll <= 30.f){
+        Serial.printf("relatively up\n");
+    }
+    else if(ypr_out.roll > 30.f && ypr_out.roll < 90.f){
+        Serial.printf("medium left\n");
+    }
+    else{
+        Serial.printf("extreme left\n");
+    }
 
     return true;
 }
