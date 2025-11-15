@@ -6,6 +6,8 @@
 #include <Arduino.h>
 #include "sensor_manager.h"
 #include <Wire.h>
+#include "ble_manager.h"
+
 
 #ifndef SPO2_DEBUG
 #define SPO2_DEBUG 1
@@ -157,6 +159,6 @@ void spo2_print_adapter(void *ctx, const sensor_data_t *d) {
   float rawSpO2 = getf(8);
   float esp = getf(12);
   float hr = getf(16);
-  Serial.printf("  SPO2: ESpO2=%.2f HR=%.1f rawSpO2=%.2f IRacdc=%.2f REDacdc=%.2f\r\n",
+  print_both("  SPO2: ESpO2=%.2f HR=%.1f rawSpO2=%.2f IRacdc=%.2f REDacdc=%.2f\r\n",
                 esp, hr, rawSpO2, ir, red);
 }

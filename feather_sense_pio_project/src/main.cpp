@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "sensor_manager.h"
+#include "ble_manager.h"
+#include <bluefruit.h>
 
 // Forward declarations of your adapter functions (must be defined elsewhere in the project)
 extern bool temp_init_adapter(void *ctx);
@@ -16,6 +18,7 @@ extern void imu_print_adapter(void *ctx, const sensor_data_t *d);
 
 void setup() {
   Serial.begin(115200);
+
   unsigned long t0 = millis();
   while (!Serial && (millis() - t0) < 5000) delay(10);
 
@@ -26,6 +29,10 @@ void setup() {
         Serial.printf("BOOT: millis=%lu\r\n", millis());
         delay(100);
     }
+
+    Serial.println("starting ble init");
+    ble_init();   
+    Serial.println("done ble init");
 
     //Initialize the sensor manager
     Serial.println("Initializing sensor manager...");
@@ -78,6 +85,11 @@ void setup() {
 }
 
 void loop() {
+
+    // char buf[64];
+    // sprintf(buf, "hello");
+    // ble_write(buf, 64);
+
     // This loop runs as the Arduino main/idle task under FreeRTOS.
     // Print a low-frequency alive message so we can see the MCU is still responsive.
     static unsigned long last = 0;
