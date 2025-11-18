@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <Adafruit_TinyUSB.h>
 #include "ble_manager.h"
+#include "storage.h"
 
 /* Config */
 #define MAX_SENSORS        20
@@ -20,6 +21,7 @@ typedef struct {
     bool enabled;
     TaskHandle_t task_handle;
     sensor_data_t last_data;
+    int idx;
 } sensor_t;
 
 static sensor_t sensors[MAX_SENSORS];
@@ -70,6 +72,9 @@ static void sensor_task(void *pvParameters)
                 s->last_data = tmp;
                 s->last_data.timestamp = xTaskGetTickCount();
                 taskEXIT_CRITICAL();
+
+                // Append to RAM batch for later flush to flash
+                storage_append_record((uint8_t)s->idx, &s->last_data);
             } else {
                 taskENTER_CRITICAL();
                 s->last_data.len = 0;
@@ -109,6 +114,7 @@ int sensor_register(const char *name,
     if (sensor_count >= MAX_SENSORS) return -1;
     int idx = sensor_count++;
     sensor_t *s = &sensors[idx];
+    s->idx = idx;
     strncpy(s->name, name, SENSOR_NAME_MAX-1);
     s->init = init_cb;
     s->read = read_cb;

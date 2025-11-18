@@ -2,6 +2,7 @@
 #include "sensor_manager.h"
 #include "ble_manager.h"
 #include <bluefruit.h>
+#include "storage.h"
 
 // Forward declarations of your adapter functions (must be defined elsewhere in the project)
 extern bool temp_init_adapter(void *ctx);
@@ -15,6 +16,24 @@ extern void spo2_print_adapter(void *ctx, const sensor_data_t *d);
 extern bool imu_init_adapter(void *ctx);
 extern bool imu_read_adapter(void *ctx, sensor_data_t *out);
 extern void imu_print_adapter(void *ctx, const sensor_data_t *d);
+
+// Called on BLE central connect
+void my_connect_cb(uint16_t conn_handle) {
+  (void)conn_handle;
+  Serial.println("BLE connected -> starting storage upload task");
+  // Kick upload in a short task to avoid blocking the BLE callback
+  xTaskCreate([](void *pv) {
+      (void)pv;
+      storage_upload_over_ble();
+      vTaskDelete(NULL);
+  }, "stor-up", 8192, NULL, 2, NULL);
+}
+
+void my_disconnect_cb(uint16_t conn_handle, uint8_t reason) {
+  (void)conn_handle; (void)reason;
+  Serial.println("BLE disconnected");
+}
+
 
 void setup() {
   Serial.begin(115200);
@@ -33,6 +52,18 @@ void setup() {
     Serial.println("starting ble init");
     ble_init();   
     Serial.println("done ble init");
+
+    // BLE callbacks
+    Bluefruit.Periph.setConnectCallback(my_connect_cb);
+    Bluefruit.Periph.setDisconnectCallback(my_disconnect_cb);
+
+    // Initialize storage (flush every 60s, 4KB RAM buffer)
+    if (!storage_init(60*1000, 4*1024)) {
+        Serial.println("storage_init failed!");
+        // non-fatal for demo: continue but no persistent logs will be saved
+    } else {
+        Serial.println("storage_init OK");
+    }
 
     //Initialize the sensor manager
     Serial.println("Initializing sensor manager...");
@@ -85,11 +116,6 @@ void setup() {
 }
 
 void loop() {
-
-    // char buf[64];
-    // sprintf(buf, "hello");
-    // ble_write(buf, 64);
-
     // This loop runs as the Arduino main/idle task under FreeRTOS.
     // Print a low-frequency alive message so we can see the MCU is still responsive.
     static unsigned long last = 0;
