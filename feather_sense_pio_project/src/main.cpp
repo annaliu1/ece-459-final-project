@@ -3,6 +3,7 @@
 #include "ble_manager.h"
 #include <bluefruit.h>
 #include "storage.h"
+#include "spo2_fusion.h"
 
 // Forward declarations of your adapter functions (must be defined elsewhere in the project)
 extern bool temp_init_adapter(void *ctx);
@@ -13,9 +14,17 @@ extern bool spo2_init_adapter(void *ctx);
 extern bool spo2_read_adapter(void *ctx, sensor_data_t *out);
 extern void spo2_print_adapter(void *ctx, const sensor_data_t *d);
 
+extern bool spo2_init_adapter_2(void *ctx);
+extern bool spo2_read_adapter_2(void *ctx, sensor_data_t *out);
+extern void spo2_print_adapter_2(void *ctx, const sensor_data_t *d);
+
 extern bool imu_init_adapter(void *ctx);
 extern bool imu_read_adapter(void *ctx, sensor_data_t *out);
 extern void imu_print_adapter(void *ctx, const sensor_data_t *d);
+
+extern bool spo2_init_fusion_adapter(void *ctx);
+extern bool spo2_read_fusion_adapter(void *ctx, sensor_data_t *out);
+extern void spo2_print_fusion_adapter(void *ctx, const sensor_data_t *d);
 
 // Called on BLE central connect
 void my_connect_cb(uint16_t conn_handle) {
@@ -96,6 +105,29 @@ void setup() {
         true   // start enabled
     );
     Serial.printf("registered sensor spo2_idx=%d\r\n", spo2_idx);
+
+    // Register SPO2 sensor #2 (uses spo2_adapter_2/spo2_module_2)
+    int spo2_idx_2 = sensor_register(
+        "spo2_2",
+        spo2_init_adapter_2,
+        spo2_read_adapter_2,
+        spo2_print_adapter_2,
+        NULL,
+        0.2, // frequency in Hz
+        true   // start enabled
+    );
+    Serial.printf("registered sensor spo2_idx_2=%d\r\n", spo2_idx_2);
+
+    int spo2_fusion_idx = sensor_register(
+        "spo2_fusion",
+        spo2_init_fusion_adapter,
+        spo2_read_fusion_adapter,
+        spo2_print_fusion_adapter,
+        NULL,
+        0.2, // frequency in Hz
+        true   // start enabled
+    );
+    Serial.printf("registered sensor spo2_fusion_idx=%d\r\n", spo2_fusion_idx);    
 
     // Register IMU sensor (uses imu_adapter/imu_module)
     int imu_idx = sensor_register(
