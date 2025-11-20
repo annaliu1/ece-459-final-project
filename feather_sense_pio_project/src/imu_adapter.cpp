@@ -1,16 +1,17 @@
 #include "imu.h"
-#include <sensor_manager.h>
-#include <string.h> // for memcpy
+#include "ble_manager.h"
 
 // Implemented in imu_sensor_module.cpp
 extern void imu_sensor_init(void);
 extern bool readIMU(euler_t*);
 
-bool imu_init_adapter(void *ctx) {
-  (void)ctx;
-  Serial.println("imu_init_adapter: start");
-  imu_sensor_init();   // void -> no assignment
-  return true;         // always create the task; don't block startup
+
+bool imu_init_adapter(void *ctx){
+    (void)ctx; //... does what?
+    Serial.println("imu_init_adapter: start");
+
+    imu_sensor_init();
+    return true;
 }
 
 bool imu_read_adapter(void *ctx, sensor_data_t *out){
@@ -20,49 +21,48 @@ bool imu_read_adapter(void *ctx, sensor_data_t *out){
 
     euler_t ypr_in;
 
-    // Read IMU data (returns false if no new data or on error)
+    //Reads IMU data
     if(!readIMU(&ypr_in)){
-        return false; // no data this cycle
+        //Serial.println("  readIMU failed");
+        return false; //return false if error with readIMU()
     }
 
-    // Pack ypr_in into out->bytes (do NOT memcpy into the whole sensor_data_t)
-    // static_assert(sizeof(euler_t) <= SENSOR_DATA_BYTES, "euler_t too large for sensor_data_t payload");
-    // memcpy(out, &ypr_in, sizeof(euler_t));
-    memcpy(out->bytes, &ypr_in, sizeof(euler_t));
-    out->len = (uint8_t)sizeof(euler_t); // 12 bytes for 3 floats (typical)
+    //Pack up ypr data (type euler_t{ float yaw, float pitch, float roll}) into sensor_data_t
+    memcpy(out, &ypr_in, sizeof(euler_t));
 
+    out->len = 12; //len of data??? Should be 12 (3 floats)
     return true;
 }
 
-bool imu_print_adapter(void *ctx, const sensor_data_t *d){
+bool imu_print_adapter(void *ctx, const sensor_data_t *d)
+{
     (void)ctx;
-    if (!d || d->len < (int)sizeof(euler_t)){
-        Serial.println("  IMU: (no data)");
+
+    if (!d || d->len < 2) {
+        print_both("  IMU: (no data)\r\n");
         return false;
     }
 
     euler_t ypr_out;
-    memcpy(&ypr_out, d->bytes, sizeof(euler_t));
+    memcpy(&ypr_out, d, sizeof(euler_t));   // keep your original behavior
 
-    // Print YPR values
-    // Serial.printf("yaw: %f\t",  ypr_out.yaw);
-    // Serial.printf("pitch: %f\t", ypr_out.pitch);
-    // Serial.printf("roll: %f\n",  ypr_out.roll);
+    // Prints everything on one line (tab-delimited)
+    //print_both("status: %d\t", sensorValue.status);   // optional
+    print_both("yaw: %f\t",   ypr_out.yaw);
+    print_both("pitch: %f\t", ypr_out.pitch);
+    print_both("roll: %f\r\n", ypr_out.roll);
 
-    if(ypr_out.roll <= -90.f){
-        Serial.printf("extreme right\n");
-    }
-    else if(ypr_out.roll > -90.f && ypr_out.roll <= -30.f){
-        Serial.printf("medium right\n");
-    }
-    else if(ypr_out.roll > -30.f && ypr_out.roll <= 30.f){
-        Serial.printf("relatively up\n");
-    }
-    else if(ypr_out.roll > 30.f && ypr_out.roll < 90.f){
-        Serial.printf("medium left\n");
-    }
-    else{
-        Serial.printf("extreme left\n");
+    // Classify position
+    if (ypr_out.roll <= -90.f) {
+        print_both("extreme right\r\n");
+    } else if (ypr_out.roll > -90.f && ypr_out.roll <= -10.f) {
+        print_both("medium right\r\n");
+    } else if (ypr_out.roll > -10.f && ypr_out.roll <= 10.f) {
+        print_both("relatively up\r\n");
+    } else if (ypr_out.roll > 10.f && ypr_out.roll < 90.f) {
+        print_both("medium left\r\n");
+    } else {
+        print_both("extreme left\r\n");
     }
 
     return true;

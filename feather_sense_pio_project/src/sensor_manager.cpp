@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <Adafruit_TinyUSB.h>
 #include "ble_manager.h"
+#include "storage.h"
 
 /* Config */
 #define MAX_SENSORS        20
@@ -20,6 +21,7 @@ typedef struct {
     bool enabled;
     TaskHandle_t task_handle;
     sensor_data_t last_data;
+    int idx;
 } sensor_t;
 
 static sensor_t sensors[MAX_SENSORS];
@@ -70,6 +72,9 @@ static void sensor_task(void *pvParameters)
                 s->last_data = tmp;
                 s->last_data.timestamp = xTaskGetTickCount();
                 taskEXIT_CRITICAL();
+
+                // Append to RAM batch for later flush to flash
+                storage_append_record((uint8_t)s->idx, &s->last_data);
             } else {
                 taskENTER_CRITICAL();
                 s->last_data.len = 0;
@@ -109,6 +114,7 @@ int sensor_register(const char *name,
     if (sensor_count >= MAX_SENSORS) return -1;
     int idx = sensor_count++;
     sensor_t *s = &sensors[idx];
+    s->idx = idx;
     strncpy(s->name, name, SENSOR_NAME_MAX-1);
     s->init = init_cb;
     s->read = read_cb;
@@ -171,13 +177,14 @@ void sensor_set_freq(int idx, float freq_hz)
 
 void print_all_sensors(void)
 {
+    char ble_buf[256];
     char buf[256];
     int count;
 
     count = snprintf(buf, sizeof(buf), "SENSORS SNAPSHOT\r\n");
-    bleuart.write((uint8_t*)buf, count);
+    // bleuart.write((uint8_t*)buf, count);
 
-    for (int i = 0; i < sensor_count; ++i) {
+    for (int i = 0; i < sensor_count; ++i) {        
         sensor_t *s = &sensors[i];
 
         count = snprintf(buf, sizeof(buf),
@@ -187,7 +194,7 @@ void print_all_sensors(void)
             s->freq_hz,
             (unsigned)s->last_data.len,
             (unsigned long)s->last_data.timestamp);
-        bleuart.write((uint8_t*)buf, count);
+        // bleuart.write((uint8_t*)buf, count);
 
         if (s->print) {
             // if s->print prints via Serial, that output won't go to BLE
@@ -196,10 +203,10 @@ void print_all_sensors(void)
         } else {
             if (s->last_data.len > 0) {
                 count = snprintf(buf, sizeof(buf), "  data (hex): ");
-                bleuart.write((uint8_t*)buf, count);
+                // bleuart.write((uint8_t*)buf, count);
 
                 for (size_t b = 0; b < s->last_data.len && b < SENSOR_DATA_BYTES; ++b) {
-                    count = snprintf(buf, sizeof(buf), "%02X ", s->last_data.bytes[b]);
+                    count = snprintf(buf, sizeof(buf), "%02X\n", s->last_data.bytes[b]);
                     bleuart.write((uint8_t*)buf, count);
                     delay(1); // small delay to avoid flooding BLE TX buffer
                 }
@@ -213,7 +220,7 @@ void print_all_sensors(void)
     }
 
     count = snprintf(buf, sizeof(buf), "===================\r\n");
-    bleuart.write((uint8_t*)buf, count);
+    // bleuart.write((uint8_t*)buf, count);
 }
 
 bool sensor_get_last(int idx, sensor_data_t *out)

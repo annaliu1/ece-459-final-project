@@ -3,6 +3,7 @@
 #include "sensor_manager.h"
 #include <Wire.h>
 #include <Adafruit_TinyUSB.h>
+#include "ble_manager.h"
 
 // These are implemented in temp_sensor_module.cpp
 extern void temp_sensor_init(void);
@@ -89,9 +90,9 @@ bool temp_read_adapter(void *ctx, sensor_data_t *out) {
 void temp_print_adapter(void *ctx, const sensor_data_t *d) {
   (void)ctx;
   if (!d || d->len < 2) {
-    Serial.println("  Temp: (no data)");
+    print_both("  Temp: (no data)");
     return;
   }
   int16_t t = (int16_t)((d->bytes[0] << 8) | d->bytes[1]);
-  Serial.printf("  Temp: %.2f C\r\n", t / 100.0f);
+  print_both("  Temp: %.2f C\r\n", t / 100.0f);
 }
