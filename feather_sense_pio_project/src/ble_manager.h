@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+extern BLEUart bleuart;   // define this in ONE .cpp file only
+
 #ifdef __cplusplus
 extern "C" {
 }

@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <Adafruit_TinyUSB.h>
 #include "ble_manager.h"
-// #include "storage.h"
+#include "storage.h"
 
 /* Config */
 #define MAX_SENSORS        20
@@ -177,13 +177,14 @@ void sensor_set_freq(int idx, float freq_hz)
 
 void print_all_sensors(void)
 {
+    char ble_buf[256];
     char buf[256];
     int count;
 
     count = snprintf(buf, sizeof(buf), "SENSORS SNAPSHOT\r\n");
-    bleuart.write((uint8_t*)buf, count);
+    // bleuart.write((uint8_t*)buf, count);
 
-    for (int i = 0; i < sensor_count; ++i) {
+    for (int i = 0; i < sensor_count; ++i) {        
         sensor_t *s = &sensors[i];
 
         count = snprintf(buf, sizeof(buf),
@@ -193,7 +194,7 @@ void print_all_sensors(void)
             s->freq_hz,
             (unsigned)s->last_data.len,
             (unsigned long)s->last_data.timestamp);
-        bleuart.write((uint8_t*)buf, count);
+        // bleuart.write((uint8_t*)buf, count);
 
         if (s->print) {
             // if s->print prints via Serial, that output won't go to BLE
@@ -202,10 +203,10 @@ void print_all_sensors(void)
         } else {
             if (s->last_data.len > 0) {
                 count = snprintf(buf, sizeof(buf), "  data (hex): ");
-                bleuart.write((uint8_t*)buf, count);
+                // bleuart.write((uint8_t*)buf, count);
 
                 for (size_t b = 0; b < s->last_data.len && b < SENSOR_DATA_BYTES; ++b) {
-                    count = snprintf(buf, sizeof(buf), "%02X ", s->last_data.bytes[b]);
+                    count = snprintf(buf, sizeof(buf), "%02X\n", s->last_data.bytes[b]);
                     bleuart.write((uint8_t*)buf, count);
                     delay(1); // small delay to avoid flooding BLE TX buffer
                 }
@@ -219,7 +220,7 @@ void print_all_sensors(void)
     }
 
     count = snprintf(buf, sizeof(buf), "===================\r\n");
-    bleuart.write((uint8_t*)buf, count);
+    // bleuart.write((uint8_t*)buf, count);
 }
 
 bool sensor_get_last(int idx, sensor_data_t *out)

@@ -3,6 +3,7 @@
 #include "ble_manager.h"
 #include <semphr.h>
 #include "sensor_manager.h"
+#include <bluefruit.h>
 
 // ---- Configurable constants ----
 static const uint32_t FLASH_LOG_BASE = 0x000000;         // base address to store logs
