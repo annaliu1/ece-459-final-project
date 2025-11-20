@@ -38,11 +38,10 @@ void my_connect_cb(uint16_t conn_handle) {
   }, "stor-up", 8192, NULL, 2, NULL);
 }
 
-void my_disconnect_cb(uint16_t conn_handle, uint8_t reason) {
-  (void)conn_handle; (void)reason;
-  Serial.println("BLE disconnected");
-}
-
+// void my_disconnect_cb(uint16_t conn_handle, uint8_t reason) {
+//   (void)conn_handle; (void)reason;
+//   Serial.println("BLE disconnected");
+// }
 
 void setup() {
   Serial.begin(115200);
@@ -63,8 +62,8 @@ void setup() {
     Serial.println("done ble init");
 
     // BLE callbacks
-    Bluefruit.Periph.setConnectCallback(my_connect_cb);
-    Bluefruit.Periph.setDisconnectCallback(my_disconnect_cb);
+    // Bluefruit.Periph.setConnectCallback(my_connect_cb);
+    // Bluefruit.Periph.setDisconnectCallback(my_disconnect_cb);
 
     // Initialize storage (flush every 60s, 4KB RAM buffer)
     if (!storage_init(60*1000, 4*1024)) {

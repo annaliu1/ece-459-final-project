@@ -1,0 +1,77 @@
+
+Data --> Flash --> BLE Flow
+┌───────────────────────────────────────────────────────────┐
+│                     Sensor Tasks (IMU, SpO₂, Temp, etc.) │
+│───────────────────────────────────────────────────────────│
+│  Each runs in its own FreeRTOS task at configured freq.   │
+│  Calls → sensor_read_adapter() → gets new data sample     │
+└──────────────┬────────────────────────────────────────────┘
+               │
+               ▼
+     ┌────────────────────────────┐
+     │ storage_append_record()    │
+     │----------------------------│
+     │ • Locks ram_mutex          │
+     │ • Builds small record:     │
+     │   [timestamp][id][len][data]   │
+     │ • Appends to ram_buf[]    │
+     │ • Updates ram_len         │
+     │ • Unlocks ram_mutex       │
+     └──────────────┬────────────┘
+                    │
+                    │ (many sensors append here)
+                    ▼
+        ┌──────────────────────────────┐
+        │  In-RAM Batch Buffer (ram_buf)│
+        │  -----------------------------│
+        │  Temporary store of recent    │
+        │  samples (~4KB default)       │
+        │  Shared by all sensors        │
+        └──────────────┬────────────────┘
+                       │
+                       │ Periodic (e.g. every 60s)
+                       ▼
+            ┌──────────────────────────────┐
+            │ storage_flush_now()          │
+            │------------------------------│
+            │ 1️⃣ Locks ram_mutex           │
+            │ 2️⃣ Copies ram_buf→tmp        │
+            │ 3️⃣ Clears ram_len=0          │
+            │ 4️⃣ Unlocks ram_mutex         │
+            │ 5️⃣ Erases necessary flash    │
+            │ 6️⃣ Writes tmp[] to flash     │
+            │ 7️⃣ Updates flash_write_ptr   │
+            └──────────────┬────────────────┘
+                           │
+                           ▼
+                ┌─────────────────────────────┐
+                │   SPI Flash (QSPI chip)     │
+                │-----------------------------│
+                │  Append-only log region     │
+                │  [timestamp][id][len][data] │
+                │  [timestamp][id][len][data] │
+                │  ... continuous records ... │
+                └──────────────┬──────────────┘
+                               │
+                               │ BLE connect event
+                               ▼
+                 ┌───────────────────────────────────────┐
+                 │ storage_upload_over_ble()             │
+                 │---------------------------------------│
+                 │ • Flushes pending RAM data first      │
+                 │ • Reads flash 180B chunks             │
+                 │ • For each chunk:                     │
+                 │    header: 'B'+seq+len                │
+                 │    payload: raw log bytes             │
+                 │ • Sends via bleuart.write()           │
+                 └──────────────┬────────────────────────┘
+                                │
+                                ▼
+                  ┌─────────────────────────────────────┐
+                  │     BLE Central (Phone / App)       │
+                  │-------------------------------------│
+                  │ • Receives BLE notifications        │
+                  │ • Parses chunk headers              │
+                  │ • Reassembles log stream            │
+                  │ • Decodes records → metrics graph   │
+                  └─────────────────────────────────────┘

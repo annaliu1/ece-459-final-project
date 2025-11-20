@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <Adafruit_TinyUSB.h>
 #include "ble_manager.h"
-#include "storage.h"
+// #include "storage.h"
 
 /* Config */
 #define MAX_SENSORS        20

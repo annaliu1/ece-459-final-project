@@ -1,6 +1,7 @@
 #pragma once
 #include <bluefruit.h>
 #include <stdarg.h>
+#include "ble_manager.h"
 
 BLEUart bleuart;   // define this in ONE .cpp file only
 
@@ -14,6 +15,7 @@ void ble_init()
   Bluefruit.setTxPower(4);
 
   bleuart.begin();
+  
 
   // Simple connect/disconnect logs (optional)
   Bluefruit.Periph.setConnectCallback([](uint16_t connHandle) {
@@ -37,12 +39,6 @@ void ble_init()
   Bluefruit.Advertising.start(0);
 
   Serial.println("ble_init done, advertising");
-}
-
-void ble_write(char *buf, uint16_t size)
-{
-    delay(2);
-    bleuart.write(buf, size);
 }
 
 // Writes data in safe BLE chunks
