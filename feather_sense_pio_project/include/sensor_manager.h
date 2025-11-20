@@ -12,7 +12,7 @@
 
 
 #define SENSOR_NAME_MAX    24
-#define SENSOR_DATA_BYTES  64
+#define SENSOR_DATA_BYTES  1024 //Used to be 64 (1024 to accomdate max mic buffer)
 
 typedef struct {
     uint8_t bytes[SENSOR_DATA_BYTES];
