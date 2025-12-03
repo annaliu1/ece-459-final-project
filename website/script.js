@@ -12,18 +12,27 @@ let rxChar = null;
 // buffer for incoming messages 
 let partial = "";
 
+// Head Position Categories
+const HEAD_POSITIONS = [
+  "Extreme Left",
+  "Medium Left",
+  "Relatively Up",
+  "Medium Right",
+  "Extreme Right"
+];
+
 // past samples: array of {t:number, vals:number[]}
 const samples = [];
 
 // table columns and charts
 const columns = [
-    "time",
-    "heartRate",
-    "temperature",
-    "spo2",
-    "headPosition",
-    "snoring"
-  ];
+  "time",
+  "heartRate",
+  "temperature",
+  "spo2",
+  "headPosition",
+  "snoring"
+];
 
 let chartHR, chartTemp, chartSpO2, chartHead, chartSnoring;
 
@@ -56,14 +65,13 @@ const themes = {
   }
 };
 
-// Initialize
-initSubplotCharts();
-setupThemeSwitcher();
+// Initialize moved to bottom
+
 
 // helper functions
 function setBLEStatus(s) {
   statusElement.textContent = s;
-  
+
   // Update badge class
   statusElement.classList.remove('connected', 'disconnected');
   if (s.toLowerCase().includes('connected') && !s.toLowerCase().includes('dis')) {
@@ -88,9 +96,9 @@ function addRow(data) {
   const row = document.createElement("tr");
 
   columns.forEach(col => {
-      const td = document.createElement("td");
-      td.textContent = data[col] ?? "-";
-      row.appendChild(td);
+    const td = document.createElement("td");
+    td.textContent = data[col] ?? "-";
+    row.appendChild(td);
   });
 
   // Prepend to show newest first (optional, but good for dashboards)
@@ -106,7 +114,7 @@ function exportData() {
     if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
     return s;
   };
-  
+
   const tbody = metricsTable.querySelector("tbody");
   if (!tbody) return; // No data
 
@@ -129,7 +137,7 @@ function exportData() {
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   const outName = `metrics-table-${ts}.csv`;
 
-  const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -142,30 +150,33 @@ function exportData() {
   }, 200);
 }
 
-function getChartConfig(label, colorIndex) {
+
+
+function getChartConfig(label, colorIndex, yLabels = null) {
   const currentTheme = document.body.className || 'theme-midnight';
   const theme = themes[currentTheme] || themes['theme-midnight'];
-  
-  return {
+
+  const config = {
     type: 'line',
-    data: { 
-      labels: [], 
-      datasets: [{ 
-        label: label, 
-        data: [], 
+    data: {
+      labels: [],
+      datasets: [{
+        label: label,
+        data: [],
         borderColor: theme.colors[colorIndex],
         borderWidth: 2,
         pointRadius: 0, // cleaner look
         pointHoverRadius: 4,
         tension: 0.4 // smooth curves
-      }] 
+      }]
     },
-    options: { 
+    options: {
       animation: false,
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
+          display: false, // Hide legend
           labels: { color: theme.textColor }
         }
       },
@@ -176,18 +187,38 @@ function getChartConfig(label, colorIndex) {
         },
         y: {
           grid: { color: theme.gridColor },
-          ticks: { color: theme.textColor }
+          ticks: { color: theme.textColor },
+          beginAtZero: false, // Allow scale to zoom in on data
+          grace: '5%' // Add some breathing room at top/bottom
         }
       }
     }
   };
+
+  // If custom yLabels are provided (for Head Position)
+  if (yLabels) {
+    config.options.scales.y.ticks.callback = function (value) {
+      return yLabels[value];
+    };
+    config.options.scales.y.min = 0;
+    config.options.scales.y.max = yLabels.length - 1;
+    config.options.scales.y.beginAtZero = true;
+    config.options.scales.y.grace = 0;
+    // Store labels in options for theme updates
+    config.options.plugins.yLabels = yLabels;
+  }
+
+  return config;
 }
 
 function initSubplotCharts() {
   chartHR = new Chart(document.getElementById('chart-hr').getContext('2d'), getChartConfig('Heart Rate', 0));
   chartTemp = new Chart(document.getElementById('chart-temp').getContext('2d'), getChartConfig('Temperature', 1));
   chartSpO2 = new Chart(document.getElementById('chart-spo2').getContext('2d'), getChartConfig('SpO2', 2));
-  chartHead = new Chart(document.getElementById('chart-head').getContext('2d'), getChartConfig('Head Position', 3));
+
+  // Pass HEAD_POSITIONS to config
+  chartHead = new Chart(document.getElementById('chart-head').getContext('2d'), getChartConfig('Head Position', 3, HEAD_POSITIONS));
+
   chartSnoring = new Chart(document.getElementById('chart-snoring').getContext('2d'), getChartConfig('Snoring', 4));
 }
 
@@ -198,7 +229,7 @@ function updateSubplotCharts(parsed) {
   const pushData = (chart, val) => {
     chart.data.labels.push(timeLabel);
     chart.data.datasets[0].data.push(val);
-    
+
     // Keep only last 50 points to prevent memory issues/lag
     if (chart.data.labels.length > 50) {
       chart.data.labels.shift();
@@ -211,10 +242,18 @@ function updateSubplotCharts(parsed) {
   pushData(chartTemp, Number(parsed.temperature) || null);
   pushData(chartSpO2, Number(parsed.spo2) || null);
 
-  const headMap = { "Left": 1, "Center": 2, "Right": 3 };
-  pushData(chartHead, headMap[parsed.headPosition] ?? null);
+  // Map string category to index
+  // "extreme right", "medium right", "relatively up", "medium left", "extreme left"
+  // Normalize input to match HEAD_POSITIONS (Title Case)
+  // Input might be lowercase from user description, but let's assume standard casing or normalize.
+  // Let's normalize incoming string to Title Case for matching.
 
-  pushData(chartSnoring, parsed.snoring === "Yes" ? 1 : 0);
+  const normalize = str => str ? str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "";
+  const posIndex = HEAD_POSITIONS.indexOf(normalize(parsed.headPosition));
+
+  pushData(chartHead, posIndex >= 0 ? posIndex : null);
+
+  pushData(chartSnoring, Number(parsed.snoring) || 0);
 }
 
 function parseLine(data) {
@@ -247,20 +286,34 @@ function setupThemeSwitcher() {
 function updateChartsTheme(themeName) {
   const theme = themes[themeName];
   const charts = [chartHR, chartTemp, chartSpO2, chartHead, chartSnoring];
-  
+
   charts.forEach((chart, index) => {
     // Update colors
     chart.data.datasets[0].borderColor = theme.colors[index];
-    
+
     // Update scales
     chart.options.scales.x.grid.color = theme.gridColor;
     chart.options.scales.x.ticks.color = theme.textColor;
     chart.options.scales.y.grid.color = theme.gridColor;
     chart.options.scales.y.ticks.color = theme.textColor;
-    
+
+    // Restore custom yLabels if they exist
+    if (chart.options.plugins.yLabels) {
+      chart.options.scales.y.ticks.callback = function (value) {
+        return chart.options.plugins.yLabels[value];
+      };
+      chart.options.scales.y.beginAtZero = true;
+      chart.options.scales.y.grace = 0;
+    } else {
+      // Ensure scaling options persist for others
+      chart.options.scales.y.beginAtZero = false;
+      chart.options.scales.y.grace = '5%';
+    }
+
     // Update legend
+    chart.options.plugins.legend.display = false;
     chart.options.plugins.legend.labels.color = theme.textColor;
-    
+
     chart.update();
   });
 }
@@ -341,7 +394,7 @@ exportBtn.onclick = exportData;
 
 clearBtn.onclick = () => {
   samples.length = 0;
-  
+
   // Clear charts
   [chartHR, chartTemp, chartSpO2, chartHead, chartSnoring].forEach(chart => {
     chart.data.labels = [];
@@ -352,7 +405,7 @@ clearBtn.onclick = () => {
   // Clear table
   const tbody = metricsTable.querySelector("tbody");
   if (tbody) tbody.innerHTML = "";
-  
+
   logBox.textContent = "";
 };
 
@@ -360,3 +413,7 @@ if (!navigator.bluetooth) {
   setBLEStatus("Web Bluetooth not supported in this browser");
   connectBtn.disabled = true;
 }
+
+// Initialize
+initSubplotCharts();
+setupThemeSwitcher();
