@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Feather Sense BLE Grapher</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 0 12px;
+      }
+      button {
+        padding: 8px 12px;
+        margin-right: 8px;
+      }
+      #log {
+        height: 160px;
+        overflow: auto;
+        background: #111;
+        color: #0f0;
+        padding: 8px;
+        font-family: ui-monospace, monospace;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin: 12px 0;
+        flex-wrap: wrap;
+      }
+      canvas {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Feather Sense Web Bluetooth Grapher</h1>
+
+    <div class="row">
+      <button id="connectBtn">Connect</button>
+      <button id="disconnectBtn" disabled>Disconnect</button>
+      <span id="status">disconnected</span>
+    </div>
+
+    <div class="row">
+      <label>
+        Parser format:
+        <select id="parserSelect">
+          <option value="csv2">CSV: t,value</option>
+          <option value="csv4">CSV: t,v1,v2,v3</option>
+          <option value="json">JSON: {"t":..,"v":..}</option>
+        </select>
+      </label>
+      <button id="clearBtn">Clear data</button>
+      <button id="exportBtn">Export CSV</button>
+    </div>
+
+    <canvas id="chart" width="900" height="380"></canvas>
+
+    <h3>Raw log</h3>
+    <div id="log"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      // ---- NUS / BLEUart UUIDs ----
+      const NUS_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+      const NUS_TX_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // notify
+      const NUS_RX_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // write
+
+      let device = null;
+      let server = null;
+      let txChar = null;
+      let rxChar = null;
+
+      // Incoming text line buffer
+      let partial = "";
+
+      // Stored samples: array of {t:number, vals:number[]}
+      const samples = [];
+
+      // ---- UI ----
+      const connectBtn = document.getElementById("connectBtn");
+      const disconnectBtn = document.getElementById("disconnectBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const exportBtn = document.getElementById("exportBtn");
+      const statusEl = document.getElementById("status");
+      const logEl = document.getElementById("log");
+      const parserSelect = document.getElementById("parserSelect");
+
+      function setStatus(s) {
+        statusEl.textContent = s;
+      }
+
+      function logLine(s) {
+        logEl.textContent += s + "\n";
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      // ---- Chart ----
+      const ctx = document.getElementById("chart").getContext("2d");
+      const chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            { label: "v1", data: [], tension: 0.1 },
+            { label: "v2", data: [], tension: 0.1, hidden: true },
+            { label: "v3", data: [], tension: 0.1, hidden: true },
+          ],
+        },
+        options: {
+          animation: false,
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: "t" } },
+            y: { title: { display: true, text: "value" } },
+          },
+        },
+      });
+
+      function refreshChart() {
+        const maxPts = 500; // keep it light
+        const view = samples.slice(-maxPts);
+        chart.data.labels = view.map((s) => s.t);
+
+        // widen/narrow datasets based on parser
+        const dim = view[0]?.vals.length ?? 1;
+        chart.data.datasets.forEach((ds, i) => {
+          ds.hidden = i >= dim;
+          ds.label = `v${i + 1}`;
+          ds.data = view.map((s) => s.vals[i]).filter((v) => v !== undefined);
+        });
+
+        chart.update();
+      }
+
+      // ---- Parsing ----
+      function parseLine(line) {
+        const mode = parserSelect.value;
+
+        try {
+          if (mode === "csv2") {
+            // "t,value"
+            const [tStr, vStr] = line.split(",");
+            const t = Number(tStr);
+            const v = Number(vStr);
+            if (Number.isFinite(t) && Number.isFinite(v))
+              return { t, vals: [v] };
+          }
+
+          if (mode === "csv4") {
+            // "t,v1,v2,v3"
+            const parts = line.split(",").map(Number);
+            if (parts.length >= 4 && parts.every(Number.isFinite)) {
+              const [t, v1, v2, v3] = parts;
+              return { t, vals: [v1, v2, v3] };
+            }
+          }
+
+          if (mode === "json") {
+            const obj = JSON.parse(line);
+            const t = Number(obj.t ?? obj.time ?? obj.ts);
+            const v = obj.v ?? obj.value;
+            if (Array.isArray(v)) {
+              const vals = v.map(Number).filter(Number.isFinite);
+              if (Number.isFinite(t) && vals.length) return { t, vals };
+            } else {
+              const val = Number(v);
+              if (Number.isFinite(t) && Number.isFinite(val))
+                return { t, vals: [val] };
+            }
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+
+        return null;
+      }
+
+      // ---- BLE handlers ----
+      function onDisconnected() {
+        setStatus("disconnected");
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+        logLine("[BLE] disconnected");
+      }
+
+      async function connect() {
+        setStatus("requesting device...");
+
+        // device = await navigator.bluetooth.requestDevice({
+        //   filters: [{ services: [NUS_SERVICE_UUID] }],
+        //   optionalServices: [NUS_SERVICE_UUID],
+        // });
+
+        device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: [NUS_SERVICE_UUID],
+        });
+
+        device.addEventListener("gattserverdisconnected", onDisconnected);
+
+        setStatus("connecting...");
+        server = await device.gatt.connect();
+
+        const service = await server.getPrimaryService(NUS_SERVICE_UUID);
+        txChar = await service.getCharacteristic(NUS_TX_UUID);
+        rxChar = await service.getCharacteristic(NUS_RX_UUID);
+
+        await txChar.startNotifications();
+        txChar.addEventListener("characteristicvaluechanged", onNotify);
+
+        setStatus("connected to " + (device.name || "device"));
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+        logLine("[BLE] connected");
+      }
+
+      async function disconnect() {
+        if (device?.gatt?.connected) device.gatt.disconnect();
+      }
+
+      function onNotify(event) {
+        const value = event.target.value;
+        const chunk = new TextDecoder().decode(value);
+
+        partial += chunk;
+
+        let idx;
+        while ((idx = partial.indexOf("\n")) >= 0) {
+          const line = partial.slice(0, idx).trim();
+          partial = partial.slice(idx + 1);
+
+          if (!line) continue;
+
+          logLine(line);
+
+          const parsed = parseLine(line);
+          if (parsed) {
+            samples.push(parsed);
+            refreshChart();
+          }
+        }
+      }
+
+      // ---- Export ----
+      function exportCSV() {
+        if (!samples.length) return;
+
+        const dim = Math.max(...samples.map((s) => s.vals.length));
+        const header = [
+          "t",
+          ...Array.from({ length: dim }, (_, i) => `v${i + 1}`),
+        ].join(",");
+        const rows = samples.map((s) => [s.t, ...s.vals].join(","));
+        const csv = [header, ...rows].join("\n");
+
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feather-data.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      // ---- Wire up buttons ----
+      connectBtn.onclick = () =>
+        connect().catch((err) => {
+          setStatus("error");
+          logLine("[ERR] " + err.message);
+          console.error(err);
+        });
+
+      disconnectBtn.onclick = () => disconnect();
+      clearBtn.onclick = () => {
+        samples.length = 0;
+        refreshChart();
+        logEl.textContent = "";
+      };
+      exportBtn.onclick = () => exportCSV();
+
+      // Basic guard
+      if (!navigator.bluetooth) {
+        setStatus("Web Bluetooth not supported in this browser");
+        connectBtn.disabled = true;
+      }
+    </script>
+  </body>
+</html>
