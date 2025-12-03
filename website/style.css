@@ -129,6 +129,8 @@ button {
   flex-wrap: wrap;
   /* Allow wrapping */
   gap: 10px;
+  width: 100%;
+  /* Ensure full width */
 }
 
 .header-content {
