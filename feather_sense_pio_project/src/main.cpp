@@ -22,11 +22,9 @@ extern bool imu_init_adapter(void *ctx);
 extern bool imu_read_adapter(void *ctx, sensor_data_t *out);
 extern void imu_print_adapter(void *ctx, const sensor_data_t *d);
 
-<<<<<<< HEAD
 extern bool mic_init_adapter(void *ctx);
 extern bool mic_read_adapter(void *ctx, sensor_data_t *out);
 extern void mic_print_adapter(void *ctx, const sensor_data_t *d);
-=======
 extern bool spo2_init_fusion_adapter(void *ctx);
 extern bool spo2_read_fusion_adapter(void *ctx, sensor_data_t *out);
 extern void spo2_print_fusion_adapter(void *ctx, const sensor_data_t *d);
@@ -47,7 +45,6 @@ void my_disconnect_cb(uint16_t conn_handle, uint8_t reason) {
   (void)conn_handle; (void)reason;
   Serial.println("BLE disconnected");
 }
->>>>>>> 32fe30cd42590183ee3f0d934003e699a3a03af7
 
 void setup() {
   Serial.begin(115200);
@@ -146,17 +143,17 @@ void setup() {
     );
     Serial.printf("registered sensor imu_idx=%d\r\n", imu_idx);
 
-    // Register MIC sensor
-    int mic_idx = sensor_register(
-        "mic",
-        mic_init_adapter,
-        mic_read_adapter,
-        mic_print_adapter,
-        NULL,
-        1, //
-        true
-    );
-    Serial.printf("registered sensor mic_idx=%d\r\n", mic_idx);
+    // // Register MIC sensor
+    // int mic_idx = sensor_register(
+    //     "mic",
+    //     mic_init_adapter,
+    //     mic_read_adapter,
+    //     mic_print_adapter,
+    //     NULL,
+    //     1, //
+    //     true
+    // );
+    // Serial.printf("registered sensor mic_idx=%d\r\n", mic_idx);
     // Create a periodic print task (every 1 second) for quick feedback
     create_sensor_printer_task(1, 4096, 1000);
 
