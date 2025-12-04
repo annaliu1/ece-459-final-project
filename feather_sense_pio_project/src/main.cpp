@@ -22,11 +22,9 @@ extern bool imu_init_adapter(void *ctx);
 extern bool imu_read_adapter(void *ctx, sensor_data_t *out);
 extern void imu_print_adapter(void *ctx, const sensor_data_t *d);
 
-<<<<<<< HEAD
 extern bool mic_init_adapter(void *ctx);
 extern bool mic_read_adapter(void *ctx, sensor_data_t *out);
 extern void mic_print_adapter(void *ctx, const sensor_data_t *d);
-=======
 extern bool spo2_init_fusion_adapter(void *ctx);
 extern bool spo2_read_fusion_adapter(void *ctx, sensor_data_t *out);
 extern void spo2_print_fusion_adapter(void *ctx, const sensor_data_t *d);
@@ -47,7 +45,6 @@ void my_disconnect_cb(uint16_t conn_handle, uint8_t reason) {
   (void)conn_handle; (void)reason;
   Serial.println("BLE disconnected");
 }
->>>>>>> 32fe30cd42590183ee3f0d934003e699a3a03af7
 
 void setup() {
   Serial.begin(115200);
@@ -129,7 +126,7 @@ void setup() {
         spo2_read_fusion_adapter,
         spo2_print_fusion_adapter,
         NULL,
-        0.2, // frequency in Hz
+        1, // frequency in Hz
         true   // start enabled
     );
     Serial.printf("registered sensor spo2_fusion_idx=%d\r\n", spo2_fusion_idx);    

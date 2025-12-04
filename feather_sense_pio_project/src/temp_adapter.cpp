@@ -94,5 +94,6 @@ void temp_print_adapter(void *ctx, const sensor_data_t *d) {
     return;
   }
   int16_t t = (int16_t)((d->bytes[0] << 8) | d->bytes[1]);
-  print_both("  Temp: %.2f C\r\n", t / 100.0f);
+  //print_both("  Temp: %.2f C\r\n", t / 100.0f);
+  print_both("0, %.2f, ", t / 100.0f);
 }
