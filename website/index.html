@@ -24,15 +24,6 @@
     <header class="app-header">
       <div class="header-content">
         <h1><i class="fa-solid fa-moon fa-fw"></i> Sleep Metrics</h1>
-
-        <div class="theme-selector">
-          <label for="theme-select"><i class="fa-solid fa-palette fa-fw"></i> Theme:</label>
-          <select id="theme-select">
-            <option value="theme-midnight">Midnight Calm</option>
-            <option value="theme-vitality">Vitality</option>
-            <option value="theme-glass">Ethereal Glass</option>
-          </select>
-        </div>
       </div>
     </header>
 
@@ -52,7 +43,6 @@
         </div>
       </section>
 
-      <!-- Visualizations Section -->
       <section class="visualizations-section">
         <div class="chart-card">
           <h3><i class="fa-solid fa-heart-pulse fa-fw"></i> Heart Rate</h3>
@@ -78,27 +68,7 @@
         <div class="chart-card">
           <h3><i class="fa-solid fa-bed fa-fw"></i> Head Position</h3>
           <div class="head-position-container">
-            <svg id="head-visualization" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-              <!-- Head (circle) -->
-              <circle cx="100" cy="100" r="60" fill="#f8d7a1" stroke="#d4a574" stroke-width="2" />
-
-              <!-- Sleep mask -->
-              <ellipse cx="100" cy="95" rx="50" ry="15" fill="#2d3748" opacity="0.9" />
-              <ellipse cx="100" cy="95" rx="45" ry="12" fill="#1a202c" />
-
-              <!-- Mask strap (left) -->
-              <path d="M 50 95 Q 30 90, 20 100" stroke="#1a202c" stroke-width="3" fill="none" />
-
-              <!-- Mask strap (right) -->
-              <path d="M 150 95 Q 170 90, 180 100" stroke="#1a202c" stroke-width="3" fill="none" />
-
-              <!-- Position indicator (will rotate) -->
-              <g id="position-indicator">
-                <circle cx="100" cy="50" r="8" fill="#ef4444" opacity="0.8" />
-                <text x="100" y="35" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="bold"
-                  id="position-text">↑</text>
-              </g>
-            </svg>
+            <div id="head-visualization"></div>
             <div class="position-label" id="position-label">Relatively Up</div>
           </div>
         </div>
@@ -111,7 +81,6 @@
         </div>
       </section>
 
-      <!-- Log Section -->
       <section class="card log-card">
         <div class="card-header">
           <h2>Log</h2>
@@ -121,7 +90,6 @@
         </div>
       </section>
 
-      <!-- Metrics Table Card -->
       <section class="card metrics-card">
         <div class="card-header">
           <h2><i class="fa-solid fa-table-list fa-fw"></i> Manage Data</h2>
@@ -153,6 +121,16 @@
     </main>
   </div>
 
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+      "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module" src="head.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="script.js"></script>
 </body>

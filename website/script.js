@@ -44,26 +44,10 @@ const exportBtn = document.getElementById("exportBtn");
 const clearBtn = document.getElementById("clearBtn");
 const metricsTable = document.getElementById("metrics-table");
 const logBox = document.getElementById("log");
-const themeSelect = document.getElementById("theme-select");
 
-// Theme Definitions for Charts
-const themes = {
-  "theme-midnight": {
-    textColor: '#94a3b8',
-    gridColor: 'rgba(255, 255, 255, 0.1)',
-    colors: ['#ef4444', '#f97316', '#3b82f6', '#22c55e', '#a855f7']
-  },
-  "theme-vitality": {
-    textColor: '#64748b',
-    gridColor: 'rgba(0, 0, 0, 0.05)',
-    colors: ['#ef4444', '#f97316', '#0ea5e9', '#10b981', '#8b5cf6']
-  },
-  "theme-glass": {
-    textColor: 'rgba(255, 255, 255, 0.8)',
-    gridColor: 'rgba(255, 255, 255, 0.1)',
-    colors: ['#ff6b6b', '#ffa94d', '#74c0fc', '#69db7c', '#da77f2']
-  }
-};
+const chartColors = ['#ef4444', '#f97316', '#3b82f6', '#22c55e', '#a855f7'];
+const chartTextColor = '#94a3b8';
+const chartGridColor = 'rgba(255, 255, 255, 0.1)';
 
 // helper functions
 function setBLEStatus(s) {
@@ -83,26 +67,26 @@ function logLine(s) {
   logBox.scrollTop = logBox.scrollHeight;
 }
 
-function addRow(data) {
-  let tbody = metricsTable.querySelector("tbody");
-  if (!tbody) {
-    tbody = document.createElement("tbody");
-    metricsTable.appendChild(tbody);
-  }
+// function addRow(data) {
+//   let tbody = metricsTable.querySelector("tbody");
+//   if (!tbody) {
+//     tbody = document.createElement("tbody");
+//     metricsTable.appendChild(tbody);
+//   }
 
-  const row = document.createElement("tr");
+//   const row = document.createElement("tr");
 
-  columns.forEach(col => {
-    const td = document.createElement("td");
-    td.textContent = data[col] ?? "-";
-    row.appendChild(td);
-  });
+//   columns.forEach(col => {
+//     const td = document.createElement("td");
+//     td.textContent = data[col] ?? "-";
+//     row.appendChild(td);
+//   });
 
-  // Prepend to show newest first (optional, but good for dashboards)
-  // tbody.prepend(row); 
-  // Or append as before:
-  tbody.appendChild(row);
-}
+//   // Prepend to show newest first (optional, but good for dashboards)
+//   // tbody.prepend(row); 
+//   // Or append as before:
+//   tbody.appendChild(row);
+// }
 
 function exportData() {
   const escapeField = val => {
@@ -147,12 +131,7 @@ function exportData() {
   }, 200);
 }
 
-
-
 function getChartConfig(label, colorIndex, yLabels = null) {
-  const currentTheme = document.body.className || 'theme-midnight';
-  const theme = themes[currentTheme] || themes['theme-midnight'];
-
   const config = {
     type: 'line',
     data: {
@@ -160,7 +139,7 @@ function getChartConfig(label, colorIndex, yLabels = null) {
       datasets: [{
         label: label,
         data: [],
-        borderColor: theme.colors[colorIndex],
+        borderColor: chartColors[colorIndex],
         borderWidth: 2,
         pointRadius: 0, // cleaner look
         pointHoverRadius: 4,
@@ -174,17 +153,17 @@ function getChartConfig(label, colorIndex, yLabels = null) {
       plugins: {
         legend: {
           display: false, // Hide legend
-          labels: { color: theme.textColor }
+          labels: { color: chartTextColor }
         }
       },
       scales: {
         x: {
-          grid: { color: theme.gridColor },
-          ticks: { color: theme.textColor }
+          grid: { color: chartGridColor },
+          ticks: { color: chartTextColor }
         },
         y: {
-          grid: { color: theme.gridColor },
-          ticks: { color: theme.textColor },
+          grid: { color: chartGridColor },
+          ticks: { color: chartTextColor },
           beginAtZero: false, // Allow scale to zoom in on data
           grace: '5%' // Add some breathing room at top/bottom
         }
@@ -212,44 +191,46 @@ function initSubplotCharts() {
   chartHR = new Chart(document.getElementById('chart-hr').getContext('2d'), getChartConfig('Heart Rate', 0));
   chartSpO2 = new Chart(document.getElementById('chart-spo2').getContext('2d'), getChartConfig('SpO2', 1));
   chartTemp = new Chart(document.getElementById('chart-temp').getContext('2d'), getChartConfig('Temperature', 2));
-  // chartHead removed - using SVG visualization instead
+  // chartHead = new Chart(document.getElementById('chart-head').getContext('2d'), getChartConfig('Head Position', 3, HEAD_POSITIONS));
+
   chartSnoring = new Chart(document.getElementById('chart-snoring').getContext('2d'), getChartConfig('Snoring', 4));
 }
 
 // Update head position visualization
 function updateHeadPosition(position) {
-  const headSvg = document.getElementById('head-visualization');
   const positionLabel = document.getElementById('position-label');
 
-  if (!headSvg || !positionLabel) return;
+  if (positionLabel) {
+    positionLabel.textContent = position || "Unknown";
+  }
 
-  // Map positions to rotation angles
-  const rotations = {
-    "Extreme Left": -45,
-    "Medium Left": -22.5,
-    "Relatively Up": 0,
-    "Medium Right": 22.5,
-    "Extreme Right": 45
-  };
-
-  const angle = rotations[position] || 0;
-  headSvg.style.transform = `rotate(${angle}deg)`;
-  positionLabel.textContent = position || "Unknown";
+  // Call the 3D model update function if available (exposed by head.js)
+  if (window.updateHeadModel) {
+    window.updateHeadModel(position);
+  }
 }
 
 function updateSubplotCharts(parsed) {
   const timeLabel = parsed.time;
 
-  // Helper to push and limit data points
+  // Helper to push and compress data points
   const pushData = (chart, val) => {
     chart.data.labels.push(timeLabel);
     chart.data.datasets[0].data.push(val);
 
-    // Keep only last 50 points to prevent memory issues/lag
-    if (chart.data.labels.length > 50) {
-      chart.data.labels.shift();
-      chart.data.datasets[0].data.shift();
+    // When we hit 50 points, compress to average
+    if (chart.data.labels.length >= 50) {
+      // Calculate average of all data points (excluding nulls)
+      const validData = chart.data.datasets[0].data.filter(v => v !== null && !isNaN(v));
+      const average = validData.length > 0
+        ? validData.reduce((sum, v) => sum + v, 0) / validData.length
+        : null;
+
+      // Replace with single averaged point
+      chart.data.labels = ['Avg'];
+      chart.data.datasets[0].data = [average];
     }
+
     chart.update('none');
   };
 
@@ -287,50 +268,6 @@ function parseLine(data) {
     console.error("[ERR] Parsing error:", e);
     return null;
   }
-}
-
-// ---- Theme Logic ----
-function setupThemeSwitcher() {
-  themeSelect.addEventListener('change', (e) => {
-    const newTheme = e.target.value;
-    document.body.className = newTheme;
-    updateChartsTheme(newTheme);
-  });
-}
-
-function updateChartsTheme(themeName) {
-  const theme = themes[themeName];
-  const charts = [chartHR, chartTemp, chartSpO2, chartSnoring]; // Removed chartHead
-
-  charts.forEach((chart, index) => {
-    // Update colors
-    chart.data.datasets[0].borderColor = theme.colors[index];
-
-    // Update scales
-    chart.options.scales.x.grid.color = theme.gridColor;
-    chart.options.scales.x.ticks.color = theme.textColor;
-    chart.options.scales.y.grid.color = theme.gridColor;
-    chart.options.scales.y.ticks.color = theme.textColor;
-
-    // Restore custom yLabels if they exist
-    if (chart.options.plugins.yLabels) {
-      chart.options.scales.y.ticks.callback = function (value) {
-        return chart.options.plugins.yLabels[value];
-      };
-      chart.options.scales.y.beginAtZero = true;
-      chart.options.scales.y.grace = 0;
-    } else {
-      // Ensure scaling options persist for others
-      chart.options.scales.y.beginAtZero = false;
-      chart.options.scales.y.grace = '5%';
-    }
-
-    // Update legend
-    chart.options.plugins.legend.display = false;
-    chart.options.plugins.legend.labels.color = theme.textColor;
-
-    chart.update();
-  });
 }
 
 // bluetooth handlers
@@ -419,17 +356,14 @@ exportBtn.onclick = exportData;
 clearBtn.onclick = () => {
   samples.length = 0;
 
-  // Clear charts
   [chartHR, chartTemp, chartSpO2, chartSnoring].forEach(chart => {
     chart.data.labels = [];
     chart.data.datasets[0].data = [];
     chart.update();
   });
 
-  // Reset head position visualization
   updateHeadPosition("Relatively Up");
 
-  // Clear table
   const tbody = metricsTable.querySelector("tbody");
   if (tbody) tbody.innerHTML = "";
 
@@ -443,4 +377,3 @@ if (!navigator.bluetooth) {
 
 // Initialize
 initSubplotCharts();
-setupThemeSwitcher();
