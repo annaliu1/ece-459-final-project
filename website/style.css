@@ -182,12 +182,14 @@ button {
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: 10px;
+  /* Reduced gap for mobile */
 }
 
 @media (min-width: 768px) {
   .dashboard-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
 
   .metrics-card,
@@ -319,19 +321,37 @@ button {
 .table-wrapper {
   overflow-x: auto;
   max-height: 300px;
+  -webkit-overflow-scrolling: touch;
+  /* Smooth scrolling on iOS */
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
   color: var(--text-primary);
+  min-width: 100%;
+  /* Prevent table from being smaller than container */
 }
 
 th,
 td {
-  padding: 12px;
+  padding: 6px 4px;
+  /* Reduced padding for mobile */
   text-align: left;
   border-bottom: 1px solid var(--border-color);
+  font-size: 0.85rem;
+  /* Smaller font on mobile */
+  white-space: nowrap;
+  /* Prevent text wrapping */
+}
+
+@media (min-width: 768px) {
+
+  th,
+  td {
+    padding: 12px;
+    font-size: 1rem;
+  }
 }
 
 th {
