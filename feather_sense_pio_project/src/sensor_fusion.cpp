@@ -101,5 +101,10 @@ void spo2_print_fusion_adapter(void *ctx, const sensor_data_t *d) {
   };
   float spo2 = getf(0);
   float hr = getf(4);
-  print_both("  SPO2_FUSION: SpO2=%.2f HR=%.1f\r\n", spo2, hr);
+  // print_both("HR: %.1f\n", hr);
+  // print_both("SPO2: %.2f\n", spo2);
+
+  print_both("%.1f, ", hr);
+  print_both("%.2f, ", spo2);
+  
 }

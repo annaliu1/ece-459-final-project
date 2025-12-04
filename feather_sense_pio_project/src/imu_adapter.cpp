@@ -48,21 +48,21 @@ bool imu_print_adapter(void *ctx, const sensor_data_t *d)
 
     // Prints everything on one line (tab-delimited)
     //print_both("status: %d\t", sensorValue.status);   // optional
-    print_both("yaw: %f\t",   ypr_out.yaw);
-    print_both("pitch: %f\t", ypr_out.pitch);
-    print_both("roll: %f\r\n", ypr_out.roll);
+    // print_both("yaw: %f\t",   ypr_out.yaw);
+    // print_both("pitch: %f\t", ypr_out.pitch);
+    // print_both("roll: %f\r\n", ypr_out.roll);
 
     // Classify position
     if (ypr_out.roll <= -90.f) {
-        print_both("extreme right\r\n");
+        print_both("extreme right, 3\r\n");
     } else if (ypr_out.roll > -90.f && ypr_out.roll <= -10.f) {
-        print_both("medium right\r\n");
+        print_both("medium right, 3\r\n");
     } else if (ypr_out.roll > -10.f && ypr_out.roll <= 10.f) {
-        print_both("relatively up\r\n");
+        print_both("relatively up, 3\r\n");
     } else if (ypr_out.roll > 10.f && ypr_out.roll < 90.f) {
-        print_both("medium left\r\n");
+        print_both("medium left, 3\r\n");
     } else {
-        print_both("extreme left\r\n");
+        print_both("extreme left, 3\r\n");
     }
 
     return true;

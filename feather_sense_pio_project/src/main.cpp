@@ -126,7 +126,7 @@ void setup() {
         spo2_read_fusion_adapter,
         spo2_print_fusion_adapter,
         NULL,
-        0.2, // frequency in Hz
+        1, // frequency in Hz
         true   // start enabled
     );
     Serial.printf("registered sensor spo2_fusion_idx=%d\r\n", spo2_fusion_idx);    

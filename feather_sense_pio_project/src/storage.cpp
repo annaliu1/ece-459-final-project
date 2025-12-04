@@ -47,7 +47,7 @@ static uint32_t find_write_ptr() {
     }
     addr += read_len;
   }
-  Serial.printf("[STOR] find_write_ptr => 0x%08X\n", (unsigned)flash_write_ptr);
+  //Serial.printf("[STOR] find_write_ptr => 0x%08X\n", (unsigned)flash_write_ptr);
   // full — wrap to base (we'll erase when writing)
   return FLASH_LOG_BASE;
 
@@ -111,8 +111,8 @@ void storage_append_record(uint8_t sensor_idx, const sensor_data_t *d) {
 
   xSemaphoreGive(ram_mutex);
 
-  Serial.printf("[STOR] appended rec sensor=%u len=%u ram_len=%u\n",
-              (unsigned)sensor_idx, (unsigned)d->len, (unsigned)ram_len);
+  // Serial.printf("[STOR] appended rec sensor=%u len=%u ram_len=%u\n",
+  //             (unsigned)sensor_idx, (unsigned)d->len, (unsigned)ram_len);
 }
 
 // Flush RAM buffer to flash now
@@ -178,12 +178,12 @@ void storage_flush_now(void) {
   free(tmp);
   if (!ok) {
     // write failed: we give up for now
-    Serial.println("[STOR] flash write failed!");
+    // Serial.println("[STOR] flash write failed!");
     return;
   }
   flash_write_ptr += (uint32_t)write_len;
-  Serial.printf("[STOR] flushed %u bytes -> new flash_ptr=0x%08X\n",
-                  (unsigned)write_len, (unsigned)flash_write_ptr);
+  // Serial.printf("[STOR] flushed %u bytes -> new flash_ptr=0x%08X\n",
+  //                 (unsigned)write_len, (unsigned)flash_write_ptr);
 }
 
 // Periodic flush task
@@ -218,7 +218,7 @@ void storage_upload_over_ble(void) {
     size_t to_read = CHUNK_UPLOAD_PAYLOAD;
     if (read_addr + to_read > ptr) to_read = ptr - read_addr;
     flash_read(read_addr, payload, to_read);
-    Serial.printf("[STOR] upload chunk seq=%u addr=0x%08X len=%u\n", (unsigned)seq, (unsigned)read_addr, (unsigned)to_read);
+    // Serial.printf("[STOR] upload chunk seq=%u addr=0x%08X len=%u\n", (unsigned)seq, (unsigned)read_addr, (unsigned)to_read);
     // send small chunk header, then payload
     uint8_t hdr[7];
     hdr[0] = 'B';

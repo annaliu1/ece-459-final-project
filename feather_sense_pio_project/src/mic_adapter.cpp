@@ -39,7 +39,7 @@ bool mic_print_adapter(void *ctx, const sensor_data_t *d){
     // Serial.println("In print adapter\n");
 
     if (!d || d->len < 2){
-        Serial.println("  IMU: (no data)");
+        //Serial.println("  MIC: (no data)");
         return false;
     }
 
@@ -49,7 +49,7 @@ bool mic_print_adapter(void *ctx, const sensor_data_t *d){
 
     //Print first 5 samples
     for(int i=0; i<5; i++){
-        Serial.printf("Sample %d: %d", i, mic_out.buffer[i]);    
+       // Serial.printf("Sample %d: %d", i, mic_out.buffer[i]);    
     }
 
     return true;
