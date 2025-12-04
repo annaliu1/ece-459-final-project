@@ -28,8 +28,8 @@ const samples = [];
 const columns = [
   "time",
   "heartRate",
-  "temperature",
   "spo2",
+  "temperature",
   "headPosition",
   "snoring"
 ];
@@ -64,9 +64,6 @@ const themes = {
     colors: ['#ff6b6b', '#ffa94d', '#74c0fc', '#69db7c', '#da77f2']
   }
 };
-
-// Initialize moved to bottom
-
 
 // helper functions
 function setBLEStatus(s) {
@@ -213,13 +210,31 @@ function getChartConfig(label, colorIndex, yLabels = null) {
 
 function initSubplotCharts() {
   chartHR = new Chart(document.getElementById('chart-hr').getContext('2d'), getChartConfig('Heart Rate', 0));
-  chartTemp = new Chart(document.getElementById('chart-temp').getContext('2d'), getChartConfig('Temperature', 1));
-  chartSpO2 = new Chart(document.getElementById('chart-spo2').getContext('2d'), getChartConfig('SpO2', 2));
-
-  // Pass HEAD_POSITIONS to config
-  chartHead = new Chart(document.getElementById('chart-head').getContext('2d'), getChartConfig('Head Position', 3, HEAD_POSITIONS));
-
+  chartSpO2 = new Chart(document.getElementById('chart-spo2').getContext('2d'), getChartConfig('SpO2', 1));
+  chartTemp = new Chart(document.getElementById('chart-temp').getContext('2d'), getChartConfig('Temperature', 2));
+  // chartHead removed - using SVG visualization instead
   chartSnoring = new Chart(document.getElementById('chart-snoring').getContext('2d'), getChartConfig('Snoring', 4));
+}
+
+// Update head position visualization
+function updateHeadPosition(position) {
+  const headSvg = document.getElementById('head-visualization');
+  const positionLabel = document.getElementById('position-label');
+
+  if (!headSvg || !positionLabel) return;
+
+  // Map positions to rotation angles
+  const rotations = {
+    "Extreme Left": -45,
+    "Medium Left": -22.5,
+    "Relatively Up": 0,
+    "Medium Right": 22.5,
+    "Extreme Right": 45
+  };
+
+  const angle = rotations[position] || 0;
+  headSvg.style.transform = `rotate(${angle}deg)`;
+  positionLabel.textContent = position || "Unknown";
 }
 
 function updateSubplotCharts(parsed) {
@@ -238,20 +253,18 @@ function updateSubplotCharts(parsed) {
     chart.update('none');
   };
 
+  // Debug logging
+  console.log('Parsed data:', parsed);
+  console.log('HR:', Number(parsed.heartRate), 'SpO2:', Number(parsed.spo2), 'Temp:', Number(parsed.temperature));
+
   pushData(chartHR, Number(parsed.heartRate) || null);
-  pushData(chartTemp, Number(parsed.temperature) || null);
   pushData(chartSpO2, Number(parsed.spo2) || null);
+  pushData(chartTemp, Number(parsed.temperature) || null);
 
-  // Map string category to index
-  // "extreme right", "medium right", "relatively up", "medium left", "extreme left"
-  // Normalize input to match HEAD_POSITIONS (Title Case)
-  // Input might be lowercase from user description, but let's assume standard casing or normalize.
-  // Let's normalize incoming string to Title Case for matching.
-
+  // Update head position visualization
   const normalize = str => str ? str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "";
-  const posIndex = HEAD_POSITIONS.indexOf(normalize(parsed.headPosition));
-
-  pushData(chartHead, posIndex >= 0 ? posIndex : null);
+  const normalizedPosition = normalize(parsed.headPosition);
+  updateHeadPosition(normalizedPosition);
 
   pushData(chartSnoring, Number(parsed.snoring) || 0);
 }
@@ -259,11 +272,13 @@ function updateSubplotCharts(parsed) {
 function parseLine(data) {
   try {
     if (!data || typeof data !== "string") throw new Error("Invalid input");
+
     const dataArray = data.split(",").map(p => p.trim());
+
     return {
       time: dataArray[0] ?? "-",
-      heartRate: dataArray[1] ?? "-",
-      temperature: dataArray[2] ?? "-",
+      temperature: dataArray[1] ?? "-",
+      heartRate: dataArray[2] ?? "-",
       spo2: dataArray[3] ?? "-",
       headPosition: dataArray[4] ?? "-",
       snoring: dataArray[5] ?? "-"
@@ -285,7 +300,7 @@ function setupThemeSwitcher() {
 
 function updateChartsTheme(themeName) {
   const theme = themes[themeName];
-  const charts = [chartHR, chartTemp, chartSpO2, chartHead, chartSnoring];
+  const charts = [chartHR, chartTemp, chartSpO2, chartSnoring]; // Removed chartHead
 
   charts.forEach((chart, index) => {
     // Update colors
@@ -335,6 +350,15 @@ async function connect() {
       optionalServices: [NUS_SERVICE_UUID],
     });
 
+    // device = await navigator.bluetooth.requestDevice({
+    //   filters: [
+    //     {
+    //       namePrefix: "FeatherSense",
+    //       services: [NUS_SERVICE_UUID]
+    //     }
+    //   ]
+    // });
+
     device.addEventListener("gattserverdisconnected", onDisconnected);
 
     setBLEStatus("connecting...");
@@ -380,7 +404,7 @@ function onNotify(event) {
     const parsed = parseLine(line);
     if (parsed) {
       samples.push(parsed);
-      addRow(parsed)
+      // addRow(parsed)
       updateSubplotCharts(parsed);
     }
   }
@@ -396,11 +420,14 @@ clearBtn.onclick = () => {
   samples.length = 0;
 
   // Clear charts
-  [chartHR, chartTemp, chartSpO2, chartHead, chartSnoring].forEach(chart => {
+  [chartHR, chartTemp, chartSpO2, chartSnoring].forEach(chart => {
     chart.data.labels = [];
     chart.data.datasets[0].data = [];
     chart.update();
   });
+
+  // Reset head position visualization
+  updateHeadPosition("Relatively Up");
 
   // Clear table
   const tbody = metricsTable.querySelector("tbody");

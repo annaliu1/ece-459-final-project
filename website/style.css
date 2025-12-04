@@ -179,11 +179,46 @@ button {
   cursor: pointer;
 }
 
+.visualizations-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  grid-column: 1 / -1;
+}
+
+/* Head Position Visualization */
+.head-position-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  min-height: 250px;
+}
+
+#head-visualization {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  transition: transform 0.5s ease;
+}
+
+.position-label {
+  margin-top: 15px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  text-align: center;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
   /* Reduced gap for mobile */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 @media (min-width: 768px) {
@@ -264,9 +299,17 @@ button {
   color: #fff;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background: var(--bg-app);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
@@ -275,8 +318,13 @@ button {
   border: 1px solid var(--border-color);
 }
 
+.btn-secondary:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
 .btn-secondary:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 

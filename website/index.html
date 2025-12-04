@@ -46,38 +46,9 @@
           <div class="status-controls">
             <button id="connectBtn" class="btn btn-primary">
               Connect</button>
-            <button id="disconnectBtn" class="btn btn-secondary" disabled>Disconnect</button>
+            <button id="disconnectBtn" class="btn btn-primary" disabled>Disconnect</button>
             <span id="ble-status" class="status-badge disconnected">Disconnected</span>
           </div>
-        </div>
-      </section>
-
-      <!-- Metrics Table Card -->
-      <section class="card metrics-card">
-        <div class="card-header">
-          <h2><i class="fa-solid fa-table-list fa-fw"></i> Live Data</h2>
-          <div class="card-actions">
-            <button id="exportBtn" class="btn btn-sm btn-outline"><i class="fa-solid fa-download fa-fw"></i> Export
-              CSV</button>
-            <button id="clearBtn" class="btn btn-sm btn-danger"><i class="fa-solid fa-trash fa-fw"></i> Clear</button>
-          </div>
-        </div>
-        <div class="card-body table-wrapper">
-          <table id="metrics-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Heart Rate</th>
-                <th>Temp</th>
-                <th>SpO2</th>
-                <th>Position</th>
-                <th>Snoring (dB)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Data rows will appear here -->
-            </tbody>
-          </table>
         </div>
       </section>
 
@@ -106,8 +77,29 @@
 
         <div class="chart-card">
           <h3><i class="fa-solid fa-bed fa-fw"></i> Head Position</h3>
-          <div class="canvas-container">
-            <canvas id="chart-head"></canvas>
+          <div class="head-position-container">
+            <svg id="head-visualization" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <!-- Head (circle) -->
+              <circle cx="100" cy="100" r="60" fill="#f8d7a1" stroke="#d4a574" stroke-width="2" />
+
+              <!-- Sleep mask -->
+              <ellipse cx="100" cy="95" rx="50" ry="15" fill="#2d3748" opacity="0.9" />
+              <ellipse cx="100" cy="95" rx="45" ry="12" fill="#1a202c" />
+
+              <!-- Mask strap (left) -->
+              <path d="M 50 95 Q 30 90, 20 100" stroke="#1a202c" stroke-width="3" fill="none" />
+
+              <!-- Mask strap (right) -->
+              <path d="M 150 95 Q 170 90, 180 100" stroke="#1a202c" stroke-width="3" fill="none" />
+
+              <!-- Position indicator (will rotate) -->
+              <g id="position-indicator">
+                <circle cx="100" cy="50" r="8" fill="#ef4444" opacity="0.8" />
+                <text x="100" y="35" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="bold"
+                  id="position-text">↑</text>
+              </g>
+            </svg>
+            <div class="position-label" id="position-label">Relatively Up</div>
           </div>
         </div>
 
@@ -128,6 +120,36 @@
           <div id="log"></div>
         </div>
       </section>
+
+      <!-- Metrics Table Card -->
+      <section class="card metrics-card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-table-list fa-fw"></i> Manage Data</h2>
+          <div class="card-actions">
+            <button id="exportBtn" class="btn btn-sm btn-outline"><i class="fa-solid fa-download fa-fw"></i> Export as
+              CSV</button>
+            <button id="clearBtn" class="btn btn-sm btn-danger"><i class="fa-solid fa-trash fa-fw"></i> Clear</button>
+          </div>
+        </div>
+        <!-- <div class="card-body table-wrapper">
+          <table id="metrics-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Heart Rate</th>
+                <th>Temp</th>
+                <th>SpO2</th>
+                <th>Position</th>
+                <th>Snoring (dB)</th>
+              </tr>
+            </thead>
+            <tbody>
+              Data rows will appear here
+            </tbody>
+          </table>
+        </div> -->
+      </section>
+
     </main>
   </div>
 
