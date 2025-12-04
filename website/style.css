@@ -70,15 +70,19 @@
    ========================================= */
 
 * {
-  box-sizing: border-box;
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 body {
   font-family: var(--font-main);
   background: var(--bg-app);
   color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  /* Prevent horizontal scroll */
+  width: 100%;
   transition: background 0.5s ease, color 0.3s ease;
   min-height: 100vh;
 }
@@ -105,8 +109,9 @@ button {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 10px;
-  /* Reduced padding for mobile */
+  padding: 5px;
+  /* Further reduced padding for mobile */
+  overflow-x: hidden;
 }
 
 @media (min-width: 768px) {
@@ -119,18 +124,17 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 15px;
+  margin-bottom: 15px;
+  padding: 10px;
+  /* Reduced for mobile */
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   border: 1px solid var(--border-color);
   backdrop-filter: var(--glass-blur, none);
   flex-wrap: wrap;
-  /* Allow wrapping */
   gap: 10px;
   width: 100%;
-  /* Ensure full width */
 }
 
 .header-content {
@@ -139,12 +143,11 @@ button {
   width: 100%;
   align-items: center;
   flex-wrap: wrap;
-  /* Allow wrapping */
   gap: 10px;
 }
 
 .header-content h1 {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   /* Smaller font on mobile */
 }
 
@@ -201,16 +204,16 @@ button {
 .card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  padding: 15px;
-  /* Reduced padding for mobile */
+  padding: 10px;
+  /* Further reduced padding for mobile */
   box-shadow: var(--shadow-card);
   border: 1px solid var(--border-color);
   backdrop-filter: var(--glass-blur, none);
   transition: transform 0.2s ease;
   width: 100%;
-  /* Ensure it takes full width of grid cell */
   max-width: 100%;
-  /* Prevent overflow */
+  overflow: hidden;
+  /* Prevent content overflow */
 }
 
 @media (min-width: 768px) {
