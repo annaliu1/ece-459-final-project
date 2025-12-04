@@ -25,9 +25,20 @@ void quaternionToEuler(float qr, float qi, float qj, float qk, euler_t* ypr, boo
   float sqj = sq(qj);
   float sqk = sq(qk);
 
+  // ypr->yaw = atan2(2.0 * (qi * qj + qk * qr), (sqi - sqj - sqk + sqr));
+  // ypr->pitch = asin(-2.0 * (qi * qk - qj * qr) / (sqi + sqj + sqk + sqr));
+  // ypr->roll = atan2(2.0 * (qj * qk + qi * qr), (-sqi - sqj + sqk + sqr));
+
+  //Here the pitch and roll are switched (pitch is now about x, roll is now about y)
+  /*
+  This was done because the IMU was accidentally put into mask with the wrong orientation.
+  We could not just use pitch becuase it is calculated by asin (0, 90) (90, 0) (0, -90) (-90, 0).
+  We need it go over 90 and -90 for our classifications (extreme right and left).
+  The only alternative was to switch the axis because roll does go past 90 and -90 (atan).
+  */
   ypr->yaw = atan2(2.0 * (qi * qj + qk * qr), (sqi - sqj - sqk + sqr));
-  ypr->pitch = asin(-2.0 * (qi * qk - qj * qr) / (sqi + sqj + sqk + sqr));
-  ypr->roll = atan2(2.0 * (qj * qk + qi * qr), (-sqi - sqj + sqk + sqr));
+  ypr->pitch = asin(-2.0 * (qj * qk + qr * qi) / (sqi + sqj + sqk + sqr)); //Pitch calculated about x-axis
+  ypr->roll = atan2(2.0 * (qr * qj + qi * qk), (sqr + sqk - sqi - sqj)); //Roll calculated about the y-axis
 
   if (degrees) {
     ypr->yaw *= RAD_TO_DEG;
