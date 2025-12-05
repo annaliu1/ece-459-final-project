@@ -79,27 +79,25 @@ loader.load("head.glb", (gltf) => {
   scene.add(model);
 
   // Once head loads, load mask
-  loader.load("mask.glb", (maskGltf) => {
-    maskModel = maskGltf.scene;
+  // loader.load("mask.glb", (maskGltf) => {
+  //   maskModel = maskGltf.scene;
 
-    const maskBox = new THREE.Box3().setFromObject(maskModel);
-    const maskCenter = maskBox.getCenter(new THREE.Vector3());
-    maskModel.position.sub(maskCenter);
-    model.scale.set(0.2, 0.2, 0.2);
-        
-    // Put the mask ON the head
-    model.add(maskModel);
-  });
+  //   const maskBox = new THREE.Box3().setFromObject(maskModel);
+  //   const maskCenter = maskBox.getCenter(new THREE.Vector3());
+  //   maskModel.position.sub(maskCenter);
+  //   model.scale.set(0.2, 0.2, 0.2);
+
+  //   // Put the mask ON the head
+  //   model.add(maskModel);
+  // });
 });
-
 
 // Animation loop
 function animate() {
   requestAnimationFrame(animate);
 
   if (model) {
-
-    // model.rotation.y += 0.01; // rotate around Y axis
+    model.rotation.y += 0.01; // rotate around Y axis
     // model.rotation.x += 0.005; // rotate around X axis (optional)
     // model.rotation.z += 0.01;
   }

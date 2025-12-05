@@ -143,17 +143,17 @@ void setup() {
     );
     Serial.printf("registered sensor imu_idx=%d\r\n", imu_idx);
 
-    // Register MIC sensor
-    int mic_idx = sensor_register(
-        "mic",
-        mic_init_adapter,
-        mic_read_adapter,
-        mic_print_adapter,
-        NULL,
-        1, //
-        true
-    );
-    Serial.printf("registered sensor mic_idx=%d\r\n", mic_idx);
+    // // Register MIC sensor
+    // int mic_idx = sensor_register(
+    //     "mic",
+    //     mic_init_adapter,
+    //     mic_read_adapter,
+    //     mic_print_adapter,
+    //     NULL,
+    //     1, //
+    //     true
+    // );
+    // Serial.printf("registered sensor mic_idx=%d\r\n", mic_idx);
     // Create a periodic print task (every 1 second) for quick feedback
     create_sensor_printer_task(1, 4096, 1000);
 

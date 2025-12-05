@@ -32,9 +32,10 @@ void ring_write_from_isr(const int16_t* sampleBuf, size_t nsamples) {
 
   // copy first contiguous chunk
   memcpy((void*)&ringBuffer[h], (const void*)sampleBuf, first * sizeof(int16_t));
-
+  Serial.printf("Copy into buffer, head at: %d\n", h);
   // if wrapped, copy remainder to start of ringBuffer
   if (first < nsamples) {
+    Serial.println("BUFFER FULL");
     memcpy((void*)&ringBuffer[0],
            (const void*)(sampleBuf + first),
            (nsamples - first) * sizeof(int16_t));
@@ -81,7 +82,7 @@ void onPDMdata() {
     // 16-bit, 2 bytes per sample
     samplesRead = bytesAvailable / 2;
 
-    // ring_write_from_isr(sampleBuffer, samplesRead);
+    ring_write_from_isr(sampleBuffer, samplesRead);
 }
 
 bool mic_sensor_init(void) {
