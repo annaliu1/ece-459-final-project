@@ -42,15 +42,33 @@ bool mic_print_adapter(void *ctx, const sensor_data_t *d){
         //Serial.println("  MIC: (no data)");
         return false;
     }
-
+    printf("IN PRINT ADAPTER\n");
     mic_data mic_out;
 
     memcpy(&mic_out.buffer, d, sizeof(mic_data));
+    
+    if(buffer_full == 1){
+        int snore_val_count = 0;
+        for(int i=0; i<BUFFER_SAMPLES; i++){
+            if(ringBuffer[i] > 1000){
+                snore_val_count++;
+                printf("snore_val_count: %d\n", snore_val_count);
+            }
+        }
+
+        if(snore_val_count > 10){
+            printf("SNORE DETECTED\n");
+        }
+        memset(&ringBuffer, 0, sizeof(ringBuffer));
+        buffer_full = 0;
+    }
 
     //Print first 5 samples
     for(int i=0; i<5; i++){
        // Serial.printf("Sample %d: %d", i, mic_out.buffer[i]);    
     }
+
+
 
     return true;
 }

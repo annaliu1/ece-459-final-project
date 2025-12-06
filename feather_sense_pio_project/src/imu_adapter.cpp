@@ -52,14 +52,14 @@ bool imu_print_adapter(void *ctx, const sensor_data_t *d)
     // print_both("pitch: %f\t", ypr_out.pitch);
     // print_both("roll: %f\r\n", ypr_out.roll);
 
-    // Classify position
+    //Classify position
     if (ypr_out.roll <= -90.f) {
         print_both("extreme right, 3\r\n");
-    } else if (ypr_out.roll > -90.f && ypr_out.roll <= -10.f) {
+    } else if (ypr_out.roll > -90.f && ypr_out.roll <= -30.f) {
         print_both("medium right, 3\r\n");
-    } else if (ypr_out.roll > -10.f && ypr_out.roll <= 10.f) {
+    } else if (ypr_out.roll > -30.f && ypr_out.roll <= 30.f) {
         print_both("relatively up, 3\r\n");
-    } else if (ypr_out.roll > 10.f && ypr_out.roll < 90.f) {
+    } else if (ypr_out.roll > 30.f && ypr_out.roll < 90.f) {
         print_both("medium left, 3\r\n");
     } else {
         print_both("extreme left, 3\r\n");
