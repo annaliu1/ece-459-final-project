@@ -207,14 +207,14 @@ void print_all_sensors(void)
 
                 for (size_t b = 0; b < s->last_data.len && b < SENSOR_DATA_BYTES; ++b) {
                     count = snprintf(buf, sizeof(buf), "%02X\n", s->last_data.bytes[b]);
-                    bleuart.write((uint8_t*)buf, count);
+                    //bleuart.write((uint8_t*)buf, count);
                     delay(1); // small delay to avoid flooding BLE TX buffer
                 }
 
-                bleuart.write((uint8_t*)"\r\n", 2);
+                //bleuart.write((uint8_t*)"\r\n", 2);
             } else {
                 count = snprintf(buf, sizeof(buf), "  (no data)\r\n");
-                bleuart.write((uint8_t*)buf, count);
+                //bleuart.write((uint8_t*)buf, count);
             }
         }
     }
