@@ -19,31 +19,13 @@ static const int frequency = 16000;
 static volatile uint32_t headSamples = 0; // next write index (in samples)
 static volatile uint32_t tailSamples = 0; // next read index (in samples)
 
+// start buffer_full flag at 0
+bool buffer_full = 0;
+
 // Helper: convert byte indices to sample indices. We keep indices in bytes for generality.
 inline uint32_t byte_to_sample_index(uint32_t byteIndex) {
   return (byteIndex >> 1) & (BUFFER_SAMPLES - 1); // divide by 2, wrap to sample array length
 }// Buffer to read samples into, each sample is 16-bits
-short sampleBuffer[512];
-
-short ringBuffer[BUFFER_SAMPLES];  // the actual definition
-
-// Number of audio samples read
-volatile int samplesRead;
-
-// default number of output channels
-static const char channels = 1;
-
-// default PCM output frequency
-static const int frequency = 16000;
-
-// head/tail in SAMPLES (not bytes)
-static volatile uint32_t headSamples = 0; // next write index (in samples)
-static volatile uint32_t tailSamples = 0; // next read index (in samples)
-
-// Helper: convert byte indices to sample indices. We keep indices in bytes for generality.
-inline uint32_t byte_to_sample_index(uint32_t byteIndex) {
-  return (byteIndex >> 1) & (BUFFER_SAMPLES - 1); // divide by 2, wrap to sample array length
-}
 
 void ring_write_from_isr(const int16_t* sampleBuf, size_t nsamples) {
   // copy with wrap handling using memcpy for speed
@@ -51,17 +33,18 @@ void ring_write_from_isr(const int16_t* sampleBuf, size_t nsamples) {
   // how many samples we can place until end of buffer
   uint32_t first = min<uint32_t>(nsamples, BUFFER_SAMPLES - h);
 
+  
   // copy first contiguous chunk
   memcpy((void*)&ringBuffer[h], (const void*)sampleBuf, first * sizeof(int16_t));
-  Serial.printf("Copy into buffer, head at: %d\n", h);
+  // Serial.printf("Copy into buffer, head at: %d\n", h);
   // if wrapped, copy remainder to start of ringBuffer
   if (first < nsamples) {
-    Serial.println("BUFFER FULL");
+    // Serial.println("BUFFER FULL");
+    buffer_full = 1;
     memcpy((void*)&ringBuffer[0],
-           (const void*)(sampleBuf + first),
-           (nsamples - first) * sizeof(int16_t));
+          (const void*)(sampleBuf + first),
+          (nsamples - first) * sizeof(int16_t));
   }
-
   // advance head (keep in samples). This update happens in ISR.
   headSamples = (headSamples + nsamples) & 0xFFFFFFFFu; // 32-bit wrap is fine
 }
@@ -93,17 +76,27 @@ bool ring_pop_samples(int16_t* dest, size_t wantSamples) {
   return true;
 }
 
+
+
 void onPDMdata() {
     // Query the number of available bytes
     int bytesAvailable = PDM.available();
+
+    if(bytesAvailable > 1024){
+      printf("BYTES GREATER THAN 1024!!!!");
+    }
 
     // Read into the sample buffer
     PDM.read(sampleBuffer, bytesAvailable);
 
     // 16-bit, 2 bytes per sample
     samplesRead = bytesAvailable / 2;
-
-    ring_write_from_isr(sampleBuffer, samplesRead);
+    if(!buffer_full){
+      ring_write_from_isr(sampleBuffer, samplesRead);
+    }
+    else{
+      headSamples = 0;
+    }
 }
 
 bool mic_sensor_init(void) {

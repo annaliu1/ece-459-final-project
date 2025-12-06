@@ -19,3 +19,5 @@ extern short ringBuffer[BUFFER_SAMPLES];  // declaration only (no 'static', no d
 
 static volatile uint32_t head = 0; // next write index (in bytes or samples - we'll use bytes below)
 static volatile uint32_t tail = 0; // next read index
+
+extern bool buffer_full;
