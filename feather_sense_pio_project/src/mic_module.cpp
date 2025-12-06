@@ -22,6 +22,27 @@ static volatile uint32_t tailSamples = 0; // next read index (in samples)
 // Helper: convert byte indices to sample indices. We keep indices in bytes for generality.
 inline uint32_t byte_to_sample_index(uint32_t byteIndex) {
   return (byteIndex >> 1) & (BUFFER_SAMPLES - 1); // divide by 2, wrap to sample array length
+}// Buffer to read samples into, each sample is 16-bits
+short sampleBuffer[512];
+
+short ringBuffer[BUFFER_SAMPLES];  // the actual definition
+
+// Number of audio samples read
+volatile int samplesRead;
+
+// default number of output channels
+static const char channels = 1;
+
+// default PCM output frequency
+static const int frequency = 16000;
+
+// head/tail in SAMPLES (not bytes)
+static volatile uint32_t headSamples = 0; // next write index (in samples)
+static volatile uint32_t tailSamples = 0; // next read index (in samples)
+
+// Helper: convert byte indices to sample indices. We keep indices in bytes for generality.
+inline uint32_t byte_to_sample_index(uint32_t byteIndex) {
+  return (byteIndex >> 1) & (BUFFER_SAMPLES - 1); // divide by 2, wrap to sample array length
 }
 
 void ring_write_from_isr(const int16_t* sampleBuf, size_t nsamples) {

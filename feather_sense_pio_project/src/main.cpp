@@ -84,52 +84,52 @@ void setup() {
     }
     Serial.println("sensor_manager_init OK");
 
-//    // Register temperature sensor (uses temp_adapter/temp_sensor_module)
-//     int temp_idx = sensor_register(
-//         "temp",
-//         temp_init_adapter,
-//         temp_read_adapter,
-//         temp_print_adapter,
-//         NULL,
-//         1,  // frequency in Hz
-//         true   // start enabled
-//     );
-//     Serial.printf("registered sensor temp_idx=%d\r\n", temp_idx);
+   // Register temperature sensor (uses temp_adapter/temp_sensor_module)
+    int temp_idx = sensor_register(
+        "temp",
+        temp_init_adapter,
+        temp_read_adapter,
+        temp_print_adapter,
+        NULL,
+        1,  // frequency in Hz
+        true   // start enabled
+    );
+    Serial.printf("registered sensor temp_idx=%d\r\n", temp_idx);
 
-    // // Register SPO2 sensor (uses spo2_adapter/spo2_module)
-    // int spo2_idx = sensor_register(
-    //     "spo2",
-    //     spo2_init_adapter,
-    //     spo2_read_adapter,
-    //     spo2_print_adapter,
-    //     NULL,
-    //     0.2, // frequency in Hz
-    //     true   // start enabled
-    // );
-    // Serial.printf("registered sensor spo2_idx=%d\r\n", spo2_idx);
+    // Register SPO2 sensor (uses spo2_adapter/spo2_module)
+    int spo2_idx = sensor_register(
+        "spo2",
+        spo2_init_adapter,
+        spo2_read_adapter,
+        spo2_print_adapter,
+        NULL,
+        0.2, // frequency in Hz
+        true   // start enabled
+    );
+    Serial.printf("registered sensor spo2_idx=%d\r\n", spo2_idx);
 
-    // // Register SPO2 sensor #2 (uses spo2_adapter_2/spo2_module_2)
-    // int spo2_idx_2 = sensor_register(
-    //     "spo2_2",
-    //     spo2_init_adapter_2,
-    //     spo2_read_adapter_2,
-    //     spo2_print_adapter_2,
-    //     NULL,
-    //     0.2, // frequency in Hz
-    //     true   // start enabled
-    // );
-    // Serial.printf("registered sensor spo2_idx_2=%d\r\n", spo2_idx_2);
+    // Register SPO2 sensor #2 (uses spo2_adapter_2/spo2_module_2)
+    int spo2_idx_2 = sensor_register(
+        "spo2_2",
+        spo2_init_adapter_2,
+        spo2_read_adapter_2,
+        spo2_print_adapter_2,
+        NULL,
+        0.2, // frequency in Hz
+        true   // start enabled
+    );
+    Serial.printf("registered sensor spo2_idx_2=%d\r\n", spo2_idx_2);
 
-    // int spo2_fusion_idx = sensor_register(
-    //     "spo2_fusion",
-    //     spo2_init_fusion_adapter,
-    //     spo2_read_fusion_adapter,
-    //     spo2_print_fusion_adapter,
-    //     NULL,
-    //     1, // frequency in Hz
-    //     true   // start enabled
-    // );
-    // Serial.printf("registered sensor spo2_fusion_idx=%d\r\n", spo2_fusion_idx);    
+    int spo2_fusion_idx = sensor_register(
+        "spo2_fusion",
+        spo2_init_fusion_adapter,
+        spo2_read_fusion_adapter,
+        spo2_print_fusion_adapter,
+        NULL,
+        1, // frequency in Hz
+        true   // start enabled
+    );
+    Serial.printf("registered sensor spo2_fusion_idx=%d\r\n", spo2_fusion_idx);    
 
     // Register IMU sensor (uses imu_adapter/imu_module)
     int imu_idx = sensor_register(
@@ -143,17 +143,17 @@ void setup() {
     );
     Serial.printf("registered sensor imu_idx=%d\r\n", imu_idx);
 
-    // // Register MIC sensor
-    // int mic_idx = sensor_register(
-    //     "mic",
-    //     mic_init_adapter,
-    //     mic_read_adapter,
-    //     mic_print_adapter,
-    //     NULL,
-    //     1, //
-    //     true
-    // );
-    // Serial.printf("registered sensor mic_idx=%d\r\n", mic_idx);
+    // Register MIC sensor
+    int mic_idx = sensor_register(
+        "mic",
+        mic_init_adapter,
+        mic_read_adapter,
+        mic_print_adapter,
+        NULL,
+        1, //
+        true
+    );
+    Serial.printf("registered sensor mic_idx=%d\r\n", mic_idx);
     // Create a periodic print task (every 1 second) for quick feedback
     create_sensor_printer_task(1, 4096, 1000);
 
