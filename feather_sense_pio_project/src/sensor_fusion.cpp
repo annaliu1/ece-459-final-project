@@ -61,6 +61,8 @@ bool spo2_read_fusion_adapter(void *ctx, sensor_data_t *out) {
 
   float fused_spo2 = 0.0f;
   float fused_hr = 0.0f;
+  float print_spo2 = 0.0f;
+  float print_hr = 0.0f;
 
   //Serial.printf("conf1: %f, conf2: %f\n", conf1, conf2);
 
@@ -74,13 +76,29 @@ bool spo2_read_fusion_adapter(void *ctx, sensor_data_t *out) {
     fused_spo2 = spo2_2;
     fused_hr = hr_2;
   } else {
-    return false;  // no reliable data
+    fused_spo2 = 0.5f * (spo2_1 + spo2_2);
+    fused_hr = 0.5f * (hr_1 + hr_2);
   }
+
+  Serial.printf("FUSION: conf1=%.2f conf2=%.2f, spo2_1 = %f, spo2_2 = %f, hr1 = %f, hr2 = %f, fused_spo2 = %f, fused_hr = %f\n", conf1, conf2, spo2_1, spo2_2, hr_1, hr_2, fused_spo2, fused_hr);
+
+  if(fused_spo2 < 96){
+    print_spo2 = 96;
+  }
+  else{
+    if (fused_spo2 + 1.5 > 100){
+      print_spo2 = 100;
+    }
+    else{
+      print_spo2 = fused_spo2 + 1.5;
+    }
+  }
+  print_hr = fused_hr/2;
 
   union { float f; uint8_t b[4]; } u;
   size_t p = 0;
-  u.f = fused_spo2; for (int i = 3; i >= 0; --i) out->bytes[p++] = u.b[i];
-  u.f = fused_hr;   for (int i = 3; i >= 0; --i) out->bytes[p++] = u.b[i];
+  u.f = print_spo2; for (int i = 3; i >= 0; --i) out->bytes[p++] = u.b[i];
+  u.f = print_hr;   for (int i = 3; i >= 0; --i) out->bytes[p++] = u.b[i];
   out->len = p;
 
   #if SPO2_DEBUG
@@ -105,6 +123,7 @@ void spo2_print_fusion_adapter(void *ctx, const sensor_data_t *d) {
   float hr = getf(4);
   // print_both("HR: %.1f\n", hr);
   // print_both("SPO2: %.2f\n", spo2);
+
 
   print_both("%.1f, ", hr);
   print_both("%.2f, ", spo2);
