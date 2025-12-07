@@ -45,7 +45,7 @@ loader.load(
   "mask.glb", // <-- your file path
   (gltf) => {
     model = gltf.scene;
-    //if using mask glb 
+    //if using mask glb
     model.scale.set(0.2, 0.2, 0.2);
 
     //if using head glb
@@ -55,9 +55,9 @@ loader.load(
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
 
-    model.position.x += (model.position.x - center.x);
-    model.position.y += (model.position.y - center.y);
-    model.position.z += (model.position.z - center.z);
+    model.position.x += model.position.x - center.x;
+    model.position.y += model.position.y - center.y;
+    model.position.z += model.position.z - center.z;
 
     scene.add(model);
   },
@@ -90,7 +90,7 @@ loader.load(
 let targetRotationY = 0;
 
 // Handle resizing
-window.addEventListener('resize', () => {
+window.addEventListener("resize", () => {
   if (!container) return;
   camera.aspect = container.clientWidth / container.clientHeight;
   camera.updateProjectionMatrix();
@@ -103,11 +103,11 @@ window.updateHeadModel = (position) => {
 
   // Map positions to Y-axis rotation angles (in radians)
   const rotations = {
-    "Extreme Left": THREE.MathUtils.degToRad(-60),
-    "Medium Left": THREE.MathUtils.degToRad(-30),
-    "Relatively Up": 0,
+    "Extreme Right": THREE.MathUtils.degToRad(60),
     "Medium Right": THREE.MathUtils.degToRad(30),
-    "Extreme Right": THREE.MathUtils.degToRad(60)
+    "Relatively Up": 0,
+    "Medium Left": THREE.MathUtils.degToRad(-30),
+    "Extreme Left": THREE.MathUtils.degToRad(-60),
   };
 
   targetRotationY = rotations[position] !== undefined ? rotations[position] : 0;
