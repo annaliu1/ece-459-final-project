@@ -150,7 +150,7 @@ void setup() {
         mic_read_adapter,
         mic_print_adapter,
         NULL,
-        1, //
+        2, //
         true
     );
     Serial.printf("registered sensor mic_idx=%d\r\n", mic_idx);
