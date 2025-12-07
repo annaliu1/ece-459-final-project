@@ -16,7 +16,6 @@ void ble_init()
 
   bleuart.begin();
   
-
   // Simple connect/disconnect logs (optional)
   Bluefruit.Periph.setConnectCallback([](uint16_t connHandle) {
     Serial.println("[BLE] Connected");
@@ -39,6 +38,7 @@ void ble_init()
   Bluefruit.Advertising.start(0);
 
   Serial.println("ble_init done, advertising");
+  
 }
 
 // Writes data in safe BLE chunks
@@ -48,7 +48,7 @@ void ble_write_bytes_chunked(const uint8_t *data, size_t len) {
   while (offset < len) {
     size_t to_write = ((len - offset) > CHUNK) ? CHUNK : (len - offset);
     bleuart.write(data + offset, to_write);
-    offset += to_write;
+    offset = to_write;
     delay(2); // small pause avoids BLE TX overflow
   }
 }

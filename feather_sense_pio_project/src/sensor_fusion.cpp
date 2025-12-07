@@ -19,8 +19,8 @@ extern volatile float last_acdc_red_2;
 #endif
 
 static float compute_confidence(float acdc_ir, float acdc_red, float spo2) {
-  if (acdc_ir < 0.02f || acdc_red < 0.02f) return 0.0f;
-  if (spo2 < 50.0f || spo2 > 100.0f) return 0.0f;
+  // if (acdc_ir < 0.02f || acdc_red < 0.02f) return 0.0f;
+  // if (spo2 < 50.0f || spo2 > 100.0f) return 0.0f;
 
   float signal_quality = fminf(acdc_ir, acdc_red);
   float range_penalty = fabsf(spo2 - 98.0f) / 50.0f;
@@ -62,6 +62,8 @@ bool spo2_read_fusion_adapter(void *ctx, sensor_data_t *out) {
   float fused_spo2 = 0.0f;
   float fused_hr = 0.0f;
 
+  Serial.printf("conf1: %f, conf2: %f\n", conf1, conf2);
+
   if (conf1 > 0.8f && conf2 > 0.8f) {
     fused_spo2 = 0.5f * (spo2_1 + spo2_2);
     fused_hr = 0.5f * (hr_1 + hr_2);
@@ -82,7 +84,7 @@ bool spo2_read_fusion_adapter(void *ctx, sensor_data_t *out) {
   out->len = p;
 
   #if SPO2_DEBUG
-  Serial.printf("FUSION: conf1=%.2f conf2=%.2f → SpO2=%.1f HR=%.1f\n", conf1, conf2, fused_spo2, fused_hr);
+  //Serial.printf("FUSION: conf1=%.2f conf2=%.2f → SpO2=%.1f HR=%.1f\n", conf1, conf2, fused_spo2, fused_hr);
   #endif
 
   return true;
