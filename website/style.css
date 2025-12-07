@@ -188,6 +188,14 @@ button {
   padding-bottom: 10px;
 }
 
+.status-card .card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
 .card-header h2 {
   font-size: 1.25rem;
   color: var(--text-primary);
@@ -199,6 +207,13 @@ button {
 /* =========================================
    COMPONENTS
    ========================================= */
+
+#battery-level {
+  font-weight: 400;
+  font-size: 0.9em;
+  margin-left: 8px;
+  color: var(--text-secondary);
+}
 
 /* Buttons */
 .btn {
@@ -405,4 +420,12 @@ tr:hover {
   background: rgba(0, 0, 0, 0.2);
   padding: 10px;
   border-radius: var(--radius-sm);
+}
+
+.text-danger {
+  color: var(--danger-color) !important;
+}
+
+.text-success {
+  color: var(--success-color) !important;
 }
