@@ -33,8 +33,8 @@ const double FSpO2 = 0.80;            // SpO2 smoothing (higher => more smoothin
 const unsigned long PRINT_INTERVAL_MS = 1000; // print every 1s
 
 // HR filtering/smoothing thresholds
-const int HR_AVG_BEATS = 8;
-const float HR_STDEV_THRESHOLD = 5.0;
+const int HR_AVG_BEATS = 4;
+const float HR_STDEV_THRESHOLD = 20;
 const float HR_ALPHA = 0.8;
 const int HR_MIN = 35;
 const int HR_MAX = 220;
