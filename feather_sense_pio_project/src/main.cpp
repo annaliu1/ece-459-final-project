@@ -31,6 +31,10 @@ extern bool spo2_init_fusion_adapter(void *ctx);
 extern bool spo2_read_fusion_adapter(void *ctx, sensor_data_t *out);
 extern void spo2_print_fusion_adapter(void *ctx, const sensor_data_t *d);
 
+extern bool battery_init_adapter(void *ctx);
+extern bool battery_read_adapter(void *ctx, sensor_data_t *out);
+extern void battery_print_adapter(void *ctx, const sensor_data_t *d);
+
 // Called on BLE central connect
 void my_connect_cb(uint16_t conn_handle) {
   (void)conn_handle;
@@ -152,13 +156,24 @@ void setup() {
         mic_read_adapter,
         mic_print_adapter,
         NULL,
-        2, //
+        2, 
         true
     );
     Serial.printf("registered sensor mic_idx=%d\r\n", mic_idx);
+
+    int battery_idx = sensor_register(
+        "battery",
+        battery_init_adapter,
+        battery_read_adapter,
+        battery_print_adapter,
+        NULL, 
+        1, 
+        true
+    );
+    Serial.printf("registered sensor battery_idx=%d\r\n", battery_idx);
     // Create a periodic print task (every 1 second) for quick feedback
     create_sensor_printer_task(1, 4096, 1000);
-    create_battery_monitor_task(1, 4096, 500);
+    //create_battery_monitor_task(1, 4096, 500);
 
     Serial.println("setup() complete, scheduler running...");
 }
@@ -166,11 +181,11 @@ void setup() {
 void loop() {
     // This loop runs as the Arduino main/idle task under FreeRTOS.
     // Print a low-frequency alive message so we can see the MCU is still responsive.
-    static unsigned long last = 0;
-    if (millis() - last >= 5000) {
-        last = millis();
-        Serial.printf("main loop alive (millis=%lu)\r\n", last);
-    }
-    // Yield to the RTOS scheduler
-    vTaskDelay(pdMS_TO_TICKS(100));
+    // static unsigned long last = 0;
+    // if (millis() - last >= 5000) {
+    //     last = millis();
+    //     Serial.printf("main loop alive (millis=%lu)\r\n", last);
+    // }
+    // // Yield to the RTOS scheduler
+    // vTaskDelay(pdMS_TO_TICKS(100));
 }

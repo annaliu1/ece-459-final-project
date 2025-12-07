@@ -5,7 +5,6 @@
 extern void imu_sensor_init(void);
 extern bool readIMU(euler_t*);
 
-
 bool imu_init_adapter(void *ctx){
     (void)ctx; //... does what?
     Serial.println("imu_init_adapter: start");
@@ -54,15 +53,15 @@ bool imu_print_adapter(void *ctx, const sensor_data_t *d)
 
     //Classify position
     if (ypr_out.roll <= -90.f) {
-        print_both("extreme right, 1\n");
+        print_both("extreme right, 1");
     } else if (ypr_out.roll > -90.f && ypr_out.roll <= -30.f) {
-        print_both("medium right, 1\n");
+        print_both("medium right, 1");
     } else if (ypr_out.roll > -30.f && ypr_out.roll <= 30.f) {
-        print_both("relatively up, 1\n");
+        print_both("relatively up, 1");
     } else if (ypr_out.roll > 30.f && ypr_out.roll < 90.f) {
-        print_both("medium left, 1\n");
+        print_both("medium left, 1");
     } else {
-        print_both("extreme left, 1\n");
+        print_both("extreme left, 1");
     }
 
     return true;
