@@ -19,7 +19,6 @@ static const int frequency = 16000;
 static volatile uint32_t headSamples = 0; // next write index (in samples)
 static volatile uint32_t tailSamples = 0; // next read index (in samples)
 
-// start buffer_full flag at 0
 bool buffer_full = 0;
 
 // Helper: convert byte indices to sample indices. We keep indices in bytes for generality.
