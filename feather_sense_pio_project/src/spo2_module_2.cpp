@@ -34,9 +34,9 @@ const double FSpO2 = 0.80;            // SpO2 smoothing (higher => more smoothin
 const unsigned long PRINT_INTERVAL_MS = 1000; // print every 1s
 
 // HR filtering/smoothing thresholds
-const int HR_AVG_BEATS = 8;
+const int HR_AVG_BEATS = 4;
 const float HR_STDEV_THRESHOLD = 5.0;
-const float HR_ALPHA = 0.80;
+const float HR_ALPHA = 0.75;
 const int HR_MIN = 35;
 const int HR_MAX = 220;
 const int HR_MAX_DELTA = 15;
@@ -47,7 +47,7 @@ const double DC_MIN = 10.0;
 const double MAX_ACDC_CLAMP = 2.0;
 
 // Sensor hardware setup
-const byte ledBrightness = 50;        // 0..255
+const byte ledBrightness = 75;        // 0..255
 const byte sampleAverage = 4;         // 1,2,4,8,16,32
 const byte ledMode = 2;               // 1=Red only, 2=Red+IR, 3=Red+IR+Green
 const int sampleRate = 200;           // 50..3200

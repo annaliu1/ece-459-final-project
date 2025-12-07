@@ -1,4 +1,4 @@
-// uuids for nordic 
+// uuids for nordic
 const NUS_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const NUS_TX_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // notify
 const NUS_RX_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // write
@@ -9,7 +9,7 @@ let server = null;
 let txChar = null;
 let rxChar = null;
 
-// buffer for incoming messages 
+// buffer for incoming messages
 let partial = "";
 
 // Head Position Categories
@@ -18,7 +18,7 @@ const HEAD_POSITIONS = [
   "Medium Left",
   "Relatively Up",
   "Medium Right",
-  "Extreme Right"
+  "Extreme Right",
 ];
 
 // past samples: array of {t:number, vals:number[]}
@@ -31,7 +31,8 @@ const columns = [
   "spo2",
   "temperature",
   "headPosition",
-  "snoring"
+  "snoring",
+  "battery",
 ];
 
 let chartHR, chartTemp, chartSpO2, chartHead, chartSnoring;
@@ -45,20 +46,23 @@ const clearBtn = document.getElementById("clearBtn");
 const metricsTable = document.getElementById("metrics-table");
 const logBox = document.getElementById("log");
 
-const chartColors = ['#ef4444', '#f97316', '#3b82f6', '#22c55e', '#a855f7'];
-const chartTextColor = '#94a3b8';
-const chartGridColor = 'rgba(255, 255, 255, 0.1)';
+const chartColors = ["#ef4444", "#f97316", "#3b82f6", "#22c55e", "#a855f7"];
+const chartTextColor = "#94a3b8";
+const chartGridColor = "rgba(255, 255, 255, 0.1)";
 
 // helper functions
 function setBLEStatus(s) {
   statusElement.textContent = s;
 
   // Update badge class
-  statusElement.classList.remove('connected', 'disconnected');
-  if (s.toLowerCase().includes('connected') && !s.toLowerCase().includes('dis')) {
-    statusElement.classList.add('connected');
+  statusElement.classList.remove("connected", "disconnected");
+  if (
+    s.toLowerCase().includes("connected") &&
+    !s.toLowerCase().includes("dis")
+  ) {
+    statusElement.classList.add("connected");
   } else {
-    statusElement.classList.add('disconnected');
+    statusElement.classList.add("disconnected");
   }
 }
 
@@ -83,14 +87,14 @@ function logLine(s) {
 //   });
 
 //   // Prepend to show newest first (optional, but good for dashboards)
-//   // tbody.prepend(row); 
+//   // tbody.prepend(row);
 //   // Or append as before:
 //   tbody.appendChild(row);
 // }
 
 function exportData() {
-  const escapeField = val => {
-    if (val === null || val === undefined) return '';
+  const escapeField = (val) => {
+    if (val === null || val === undefined) return "";
     const s = String(val);
     if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
     return s;
@@ -99,28 +103,28 @@ function exportData() {
   const tbody = metricsTable.querySelector("tbody");
   if (!tbody) return; // No data
 
-  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const rows = Array.from(tbody.querySelectorAll("tr"));
 
   const lines = [];
-  lines.push(columns.map(escapeField).join(','));
+  lines.push(columns.map(escapeField).join(","));
 
   for (const row of rows) {
-    const cells = Array.from(row.querySelectorAll('td'));
+    const cells = Array.from(row.querySelectorAll("td"));
     const values = columns.map((_, idx) => {
       const cell = cells[idx];
-      const raw = cell ? cell.textContent : '';
+      const raw = cell ? cell.textContent : "";
       return escapeField(raw.trim());
     });
-    lines.push(values.join(','));
+    lines.push(values.join(","));
   }
 
-  const csvContent = lines.join('\r\n');
-  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  const csvContent = lines.join("\r\n");
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
   const outName = `metrics-table-${ts}.csv`;
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = outName;
   document.body.appendChild(a);
@@ -133,18 +137,20 @@ function exportData() {
 
 function getChartConfig(label, colorIndex, yLabels = null) {
   const config = {
-    type: 'line',
+    type: "line",
     data: {
       labels: [],
-      datasets: [{
-        label: label,
-        data: [],
-        borderColor: chartColors[colorIndex],
-        borderWidth: 2,
-        pointRadius: 0, // cleaner look
-        pointHoverRadius: 4,
-        tension: 0.4 // smooth curves
-      }]
+      datasets: [
+        {
+          label: label,
+          data: [],
+          borderColor: chartColors[colorIndex],
+          borderWidth: 2,
+          pointRadius: 0, // cleaner look
+          pointHoverRadius: 4,
+          tension: 0.4, // smooth curves
+        },
+      ],
     },
     options: {
       animation: false,
@@ -153,22 +159,22 @@ function getChartConfig(label, colorIndex, yLabels = null) {
       plugins: {
         legend: {
           display: false, // Hide legend
-          labels: { color: chartTextColor }
-        }
+          labels: { color: chartTextColor },
+        },
       },
       scales: {
         x: {
           grid: { color: chartGridColor },
-          ticks: { color: chartTextColor }
+          ticks: { color: chartTextColor },
         },
         y: {
           grid: { color: chartGridColor },
           ticks: { color: chartTextColor },
           beginAtZero: false, // Allow scale to zoom in on data
-          grace: '5%' // Add some breathing room at top/bottom
-        }
-      }
-    }
+          grace: "5%", // Add some breathing room at top/bottom
+        },
+      },
+    },
   };
 
   // If custom yLabels are provided (for Head Position)
@@ -188,17 +194,29 @@ function getChartConfig(label, colorIndex, yLabels = null) {
 }
 
 function initSubplotCharts() {
-  chartHR = new Chart(document.getElementById('chart-hr').getContext('2d'), getChartConfig('Heart Rate', 0));
-  chartSpO2 = new Chart(document.getElementById('chart-spo2').getContext('2d'), getChartConfig('SpO2', 1));
-  chartTemp = new Chart(document.getElementById('chart-temp').getContext('2d'), getChartConfig('Temperature', 2));
+  chartHR = new Chart(
+    document.getElementById("chart-hr").getContext("2d"),
+    getChartConfig("Heart Rate", 0)
+  );
+  chartSpO2 = new Chart(
+    document.getElementById("chart-spo2").getContext("2d"),
+    getChartConfig("SpO2", 1)
+  );
+  chartTemp = new Chart(
+    document.getElementById("chart-temp").getContext("2d"),
+    getChartConfig("Temperature", 2)
+  );
   // chartHead = new Chart(document.getElementById('chart-head').getContext('2d'), getChartConfig('Head Position', 3, HEAD_POSITIONS));
 
-  chartSnoring = new Chart(document.getElementById('chart-snoring').getContext('2d'), getChartConfig('Snoring', 4));
+  chartSnoring = new Chart(
+    document.getElementById("chart-snoring").getContext("2d"),
+    getChartConfig("Snoring", 4)
+  );
 }
 
 // Update head position visualization
 function updateHeadPosition(position) {
-  const positionLabel = document.getElementById('position-label');
+  const positionLabel = document.getElementById("position-label");
 
   if (positionLabel) {
     positionLabel.textContent = position || "Unknown";
@@ -221,40 +239,77 @@ function updateSubplotCharts(parsed) {
     // When we hit 50 points, compress to average
     if (chart.data.labels.length >= 50) {
       // Calculate average of all data points (excluding nulls)
-      const validData = chart.data.datasets[0].data.filter(v => v !== null && !isNaN(v));
-      const average = validData.length > 0
-        ? validData.reduce((sum, v) => sum + v, 0) / validData.length
-        : null;
+      const validData = chart.data.datasets[0].data.filter(
+        (v) => v !== null && !isNaN(v)
+      );
+      const average =
+        validData.length > 0
+          ? validData.reduce((sum, v) => sum + v, 0) / validData.length
+          : null;
 
       // Replace with single averaged point
-      chart.data.labels = ['Avg'];
+      chart.data.labels = ["Avg"];
       chart.data.datasets[0].data = [average];
     }
 
-    chart.update('none');
+    chart.update("none");
   };
 
   // Debug logging
-  console.log('Parsed data:', parsed);
-  console.log('HR:', Number(parsed.heartRate), 'SpO2:', Number(parsed.spo2), 'Temp:', Number(parsed.temperature));
+  console.log("Parsed data:", parsed);
+  console.log(
+    "HR:",
+    Number(parsed.heartRate),
+    "SpO2:",
+    Number(parsed.spo2),
+    "Temp:",
+    Number(parsed.temperature)
+  );
 
   pushData(chartHR, Number(parsed.heartRate) || null);
   pushData(chartSpO2, Number(parsed.spo2) || null);
   pushData(chartTemp, Number(parsed.temperature) || null);
 
   // Update head position visualization
-  const normalize = str => str ? str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "";
+  const normalize = (str) =>
+    str
+      ? str
+        .toLowerCase()
+        .split(" ")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ")
+      : "";
   const normalizedPosition = normalize(parsed.headPosition);
   updateHeadPosition(normalizedPosition);
 
   pushData(chartSnoring, Number(parsed.snoring) || 0);
+
+  // Update battery UI
+  const batteryLevel = parseInt(parsed.battery);
+  const batteryStatusDiv = document.getElementById("battery-status");
+  const batteryIcon = batteryStatusDiv ? batteryStatusDiv.querySelector("i") : null;
+  const batteryLabel = document.getElementById("battery-level");
+
+  if (batteryLabel && !isNaN(batteryLevel)) {
+    batteryLabel.textContent = batteryLevel + "%";
+
+    if (batteryIcon) {
+      batteryIcon.classList.remove("text-danger", "text-success");
+      if (batteryLevel <= 20) {
+        batteryIcon.classList.add("text-danger");
+      } else {
+        batteryIcon.classList.add("text-success");
+      }
+    }
+  }
+
 }
 
 function parseLine(data) {
   try {
     if (!data || typeof data !== "string") throw new Error("Invalid input");
 
-    const dataArray = data.split(",").map(p => p.trim());
+    const dataArray = data.split(",").map((p) => p.trim());
 
     return {
       time: dataArray[0] ?? "-",
@@ -262,7 +317,8 @@ function parseLine(data) {
       heartRate: dataArray[2] ?? "-",
       spo2: dataArray[3] ?? "-",
       headPosition: dataArray[4] ?? "-",
-      snoring: dataArray[5] ?? "-"
+      snoring: dataArray[5] ?? "-",
+      battery: dataArray[6] ?? "-",
     };
   } catch (e) {
     console.error("[ERR] Parsing error:", e);
@@ -291,9 +347,9 @@ async function connect() {
     //   filters: [
     //     {
     //       namePrefix: "FeatherSense",
-    //       services: [NUS_SERVICE_UUID]
-    //     }
-    //   ]
+    //       optionalServices: [NUS_SERVICE_UUID],
+    //     },
+    //   ],
     // });
 
     device.addEventListener("gattserverdisconnected", onDisconnected);
@@ -347,7 +403,6 @@ function onNotify(event) {
   }
 }
 
-
 // button wiring
 connectBtn.onclick = connect;
 disconnectBtn.onclick = disconnect;
@@ -356,7 +411,7 @@ exportBtn.onclick = exportData;
 clearBtn.onclick = () => {
   samples.length = 0;
 
-  [chartHR, chartTemp, chartSpO2, chartSnoring].forEach(chart => {
+  [chartHR, chartTemp, chartSpO2, chartSnoring].forEach((chart) => {
     chart.data.labels = [];
     chart.data.datasets[0].data = [];
     chart.update();

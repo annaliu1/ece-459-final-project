@@ -6,6 +6,8 @@
 #include "spo2_fusion.h"
 
 // Forward declarations of your adapter functions (must be defined elsewhere in the project)
+extern BaseType_t create_battery_monitor_task(UBaseType_t, uint16_t, TickType_t);
+
 extern bool temp_init_adapter(void *ctx);
 extern bool temp_read_adapter(void *ctx, sensor_data_t *out);
 extern void temp_print_adapter(void *ctx, const sensor_data_t *d);
@@ -84,7 +86,7 @@ void setup() {
     }
     Serial.println("sensor_manager_init OK");
 
-   // Register temperature sensor (uses temp_adapter/temp_sensor_module)
+//    Register temperature sensor (uses temp_adapter/temp_sensor_module)
     int temp_idx = sensor_register(
         "temp",
         temp_init_adapter,
@@ -150,12 +152,13 @@ void setup() {
         mic_read_adapter,
         mic_print_adapter,
         NULL,
-        1, //
+        2, //
         true
     );
     Serial.printf("registered sensor mic_idx=%d\r\n", mic_idx);
     // Create a periodic print task (every 1 second) for quick feedback
     create_sensor_printer_task(1, 4096, 1000);
+    create_battery_monitor_task(1, 4096, 500);
 
     Serial.println("setup() complete, scheduler running...");
 }

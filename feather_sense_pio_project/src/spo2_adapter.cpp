@@ -159,8 +159,8 @@ void spo2_print_adapter(void *ctx, const sensor_data_t *d) {
   float rawSpO2 = getf(8);
   float esp = getf(12);
   float hr = getf(16);
-  // print_both("  SPO2: ESpO2=%.2f HR=%.1f rawSpO2=%.2f IRacdc=%.2f REDacdc=%.2f\r\n",
-  //               esp, hr, rawSpO2, ir, red);
+  // Serial.printf("SPO2: ESpO2=%.2f HR=%.1f rawSpO2=%.2f IRacdc=%.2f REDacdc=%.2f\r\n",
+  //                esp, hr, rawSpO2, ir, red);// SPO2 debug
   //print_both("  SPO2: ESpO2=%.2f HR=%.1f",
                  //esp, hr); 
 }
