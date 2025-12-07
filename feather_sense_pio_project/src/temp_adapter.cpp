@@ -24,25 +24,27 @@ static const float TEMP_OFFSET_C = -192.0f;   // offset in Celsius to add after 
 
 // Probe a small set of likely addresses only (non-blocking, with recovery)
 bool probe_common_addrs_and_record(void) {
-  const uint8_t probe_addrs[] = { 0x48, 0x76, 0x77 };
+  //const uint8_t probe_addrs[] = { 0x48, 0x76, 0x77 };
 
-  for (size_t i = 0; i < sizeof(probe_addrs); ++i) {
-    uint8_t a = probe_addrs[i];
-    Serial.printf("temp_adapter: probe 0x%02X ...\r\n", a);
-    Serial.flush();
-    Wire.beginTransmission(a);
-    uint8_t err = Wire.endTransmission();
-    Serial.printf("temp_adapter: probe 0x%02X result=%u\r\n", a, err);
-    Serial.flush();
-    if (err == 0) {
-      Serial.printf("temp_adapter: device ACK at 0x%02X\r\n", a);
-      temp_i2c_addr = a;
-      return true;
-    }
-    // small pause so we don't hammer the bus
-    delay(20);
-  }
-  return false;
+  // for (size_t i = 0; i < sizeof(probe_addrs); ++i) {
+  //   uint8_t a = probe_addrs[i];
+  //   Serial.printf("temp_adapter: probe 0x%02X ...\r\n", a);
+  //   Serial.flush();
+  //   Wire.beginTransmission(a);
+  //   uint8_t err = Wire.endTransmission();
+  //   Serial.printf("temp_adapter: probe 0x%02X result=%u\r\n", a, err);
+  //   Serial.flush();
+  //   if (err == 0) {
+  //     Serial.printf("temp_adapter: device ACK at 0x%02X\r\n", a);
+  //     temp_i2c_addr = 0x48;
+  //     return true;
+  //   }
+  //   // small pause so we don't hammer the bus
+  //   delay(20);
+  // }
+
+  temp_i2c_addr =  0x48;
+  return true;
 }
 
 bool temp_init_adapter(void *ctx) {

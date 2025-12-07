@@ -47,7 +47,7 @@ const double DC_MIN = 10.0;
 const double MAX_ACDC_CLAMP = 2.0;
 
 // Sensor hardware setup
-const byte ledBrightness = 75;        // 0..255
+const byte ledBrightness = 50;        // 0..255
 const byte sampleAverage = 4;         // 1,2,4,8,16,32
 const byte ledMode = 2;               // 1=Red only, 2=Red+IR, 3=Red+IR+Green
 const int sampleRate = 200;           // 50..3200

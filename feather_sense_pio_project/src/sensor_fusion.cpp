@@ -62,7 +62,7 @@ bool spo2_read_fusion_adapter(void *ctx, sensor_data_t *out) {
   float fused_spo2 = 0.0f;
   float fused_hr = 0.0f;
 
-  Serial.printf("conf1: %f, conf2: %f\n", conf1, conf2);
+  //Serial.printf("conf1: %f, conf2: %f\n", conf1, conf2);
 
   if (conf1 > 0.8f && conf2 > 0.8f) {
     fused_spo2 = 0.5f * (spo2_1 + spo2_2);
