@@ -277,7 +277,9 @@ function updateSubplotCharts(parsed) {
     Number(parsed.temperature)
   );
 
-  pushData(chartHR, Number(parsed.heartRate) || null);
+  let temphr = Number(parsed.heartRate) - 10;
+
+  pushData(chartHR, temphr || null);
   pushData(chartSpO2, Number(parsed.spo2) || null);
   pushData(chartTemp, Number(parsed.temperature) || null);
 
@@ -293,42 +295,40 @@ function updateSubplotCharts(parsed) {
   const normalizedPosition = normalize(parsed.headPosition);
   updateHeadPosition(normalizedPosition);
 
-  let finalSnore = '0';
+  let finalSnore = "0";
 
   switch (snoringState) {
-
-    case (NEEDS_MORE_FOR_SNORE):
-      finalSnore = '0';
-      if (parsed.snoring == '1') {
+    case NEEDS_MORE_FOR_SNORE:
+      finalSnore = "0";
+      if (parsed.snoring == "1") {
         snoringState = NEEDS_1_FOR_SNORE;
       }
       break;
 
-    case (NEEDS_1_FOR_SNORE):
-      finalSnore = '0';
-      if (parsed.snoring = '1')
-      {
+    case NEEDS_1_FOR_SNORE:
+      finalSnore = "0";
+      if ((parsed.snoring = "1")) {
         snoringState = NEEDS_0_FOR_SNORE;
       }
       break;
 
-    case (NEEDS_0_FOR_SNORE):
-      finalSnore = '0';
+    case NEEDS_0_FOR_SNORE:
+      finalSnore = "0";
       // if (parsed.snoring == '1') {
       //   snoringState = NEEDS_0_FOR_SNORE;
-      // } 
-      if (parsed.snoring == '0') {
+      // }
+      if (parsed.snoring == "0") {
         snoringState = SNORE;
       }
       break;
 
-    case (SNORE):
-      finalSnore = '1';
+    case SNORE:
+      finalSnore = "1";
       snoringState = NEEDS_MORE_FOR_SNORE;
       break;
-    
+
     default:
-      finalSnore = '0';
+      finalSnore = "0";
       break;
   }
 
