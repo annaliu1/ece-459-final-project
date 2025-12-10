@@ -103,11 +103,11 @@ window.updateHeadModel = (position) => {
 
   // Map positions to Y-axis rotation angles (in radians)
   const rotations = {
-    "Extreme Right": THREE.MathUtils.degToRad(60),
-    "Medium Right": THREE.MathUtils.degToRad(30),
+    "Extreme Right": THREE.MathUtils.degToRad(-60),
+    "Medium Right": THREE.MathUtils.degToRad(-30),
     "Relatively Up": 0,
-    "Medium Left": THREE.MathUtils.degToRad(-30),
-    "Extreme Left": THREE.MathUtils.degToRad(-60),
+    "Medium Left": THREE.MathUtils.degToRad(30),
+    "Extreme Left": THREE.MathUtils.degToRad(60),
   };
 
   targetRotationY = rotations[position] !== undefined ? rotations[position] : 0;

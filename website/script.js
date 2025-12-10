@@ -37,6 +37,13 @@ const columns = [
 
 let chartHR, chartTemp, chartSpO2, chartHead, chartSnoring;
 
+const NEEDS_MORE_FOR_SNORE = 0;
+const NEEDS_0_FOR_SNORE = 1;
+const NEEDS_1_FOR_SNORE = 2;
+const SNORE = 3;
+
+var snoringState = 0;
+
 // ui elements
 const connectBtn = document.getElementById("connectBtn");
 const disconnectBtn = document.getElementById("disconnectBtn");
@@ -100,20 +107,17 @@ function exportData() {
     return s;
   };
 
-  const tbody = metricsTable.querySelector("tbody");
-  if (!tbody) return; // No data
-
-  const rows = Array.from(tbody.querySelectorAll("tr"));
+  if (samples.length === 0) {
+    alert("No data to export");
+    return;
+  }
 
   const lines = [];
   lines.push(columns.map(escapeField).join(","));
 
-  for (const row of rows) {
-    const cells = Array.from(row.querySelectorAll("td"));
-    const values = columns.map((_, idx) => {
-      const cell = cells[idx];
-      const raw = cell ? cell.textContent : "";
-      return escapeField(raw.trim());
+  for (const sample of samples) {
+    const values = columns.map((col) => {
+      return escapeField(sample[col]);
     });
     lines.push(values.join(","));
   }
@@ -207,7 +211,6 @@ function initSubplotCharts() {
     getChartConfig("Temperature", 2)
   );
   // chartHead = new Chart(document.getElementById('chart-head').getContext('2d'), getChartConfig('Head Position', 3, HEAD_POSITIONS));
-
   chartSnoring = new Chart(
     document.getElementById("chart-snoring").getContext("2d"),
     getChartConfig("Snoring", 4)
@@ -235,6 +238,14 @@ function updateSubplotCharts(parsed) {
   const pushData = (chart, val) => {
     chart.data.labels.push(timeLabel);
     chart.data.datasets[0].data.push(val);
+
+    // if (!(val === 0)) {
+    //   chart.data.datasets[0].data.push(val);
+    // } else {
+    //   chart.data.datasets[0].data.push(
+    //     chart.data.datasets[0].data[chart.data.datasets[0].data.length - 1]
+    //   );
+    // }
 
     // When we hit 50 points, compress to average
     if (chart.data.labels.length >= 50) {
@@ -274,20 +285,61 @@ function updateSubplotCharts(parsed) {
   const normalize = (str) =>
     str
       ? str
-        .toLowerCase()
-        .split(" ")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ")
+          .toLowerCase()
+          .split(" ")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ")
       : "";
   const normalizedPosition = normalize(parsed.headPosition);
   updateHeadPosition(normalizedPosition);
 
-  pushData(chartSnoring, Number(parsed.snoring) || 0);
+  let finalSnore = '0';
+
+  switch (snoringState) {
+
+    case (NEEDS_MORE_FOR_SNORE):
+      finalSnore = '0';
+      if (parsed.snoring == '1') {
+        snoringState = NEEDS_1_FOR_SNORE;
+      }
+      break;
+
+    case (NEEDS_1_FOR_SNORE):
+      finalSnore = '0';
+      if (parsed.snoring = '1')
+      {
+        snoringState = NEEDS_0_FOR_SNORE;
+      }
+      break;
+
+    case (NEEDS_0_FOR_SNORE):
+      finalSnore = '0';
+      // if (parsed.snoring == '1') {
+      //   snoringState = NEEDS_0_FOR_SNORE;
+      // } 
+      if (parsed.snoring == '0') {
+        snoringState = SNORE;
+      }
+      break;
+
+    case (SNORE):
+      finalSnore = '1';
+      snoringState = NEEDS_MORE_FOR_SNORE;
+      break;
+    
+    default:
+      finalSnore = '0';
+      break;
+  }
+
+  pushData(chartSnoring, finalSnore || 0);
 
   // Update battery UI
   const batteryLevel = parseInt(parsed.battery);
   const batteryStatusDiv = document.getElementById("battery-status");
-  const batteryIcon = batteryStatusDiv ? batteryStatusDiv.querySelector("i") : null;
+  const batteryIcon = batteryStatusDiv
+    ? batteryStatusDiv.querySelector("i")
+    : null;
   const batteryLabel = document.getElementById("battery-level");
 
   if (batteryLabel && !isNaN(batteryLevel)) {
@@ -302,7 +354,6 @@ function updateSubplotCharts(parsed) {
       }
     }
   }
-
 }
 
 function parseLine(data) {
@@ -423,6 +474,11 @@ clearBtn.onclick = () => {
   if (tbody) tbody.innerHTML = "";
 
   logBox.textContent = "";
+
+  if (batteryIcon) {
+    batteryIcon.classList.remove("text-danger", "text-success");
+    batteryLabel.textContent = "-%";
+  }
 };
 
 if (!navigator.bluetooth) {
